@@ -1,0 +1,6 @@
+.message {
+    color: red;
+}
+.message.own {
+    color: blue;
+}

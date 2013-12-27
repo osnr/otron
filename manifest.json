@@ -1,0 +1,33 @@
+{
+    "manifest_version": 2,
+
+    "name": "OTR for Facebook Chat",
+    "version": "0.1",
+    "description": "Allows you to encrypt your Facebook chats.",
+
+    "content_scripts": [
+        {
+            "matches": ["*://*.facebook.com/*"],
+
+            "css": ["fbotr.css"],
+            "js": ["lib/bigint.js", "lib/crypto.js", "lib/eventemitter.js",
+                   "lib/otr.js", "lib/jquery.min.js", "lib/jquery.waituntilexists.js",
+                   "fbotr.js"]
+        }
+    ],
+
+    "background": {
+        "scripts": ["event.js"],
+        "persistent": false
+    },
+
+    "web_accessible_resources": [
+        "safechat.html",
+        "img/unlock-alt.png",
+        "img/unlock-alt-hover.png",
+        "img/lock.png",
+        "img/lock-hover.png"
+    ],
+
+    "permissions": ["storage"]
+}

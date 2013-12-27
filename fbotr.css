@@ -1,0 +1,85 @@
+.gen-key {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+
+    min-height: 100%;
+    height: auto;
+
+    z-index: 500;
+
+    background-color: rgba(0, 0, 0, .4);
+    /* top: 50%; */
+    /* left: 50%; */
+
+    /* height: 100px; */
+    /* width: 100px; */
+
+    /* margin-top: -50px; */
+    /* margin-left: -50px; */
+
+    /* background-color: #aaa; */
+
+    /* z-index: 10; */
+}
+
+.gen-key .gen-key-dialog {
+    position: fixed;
+
+    -webkit-box-shadow: 0 2px 26px rgba(0, 0, 0, .3), 0 0 0 1px rgba(0, 0, 0, .1);
+    top: 50%;
+    left: 50%;
+
+    height: 15px;
+    margin-top: -7x;
+
+    width: 350px;
+    margin-left: -175px;
+
+    padding-top: 20px;
+    padding-bottom: 20px;
+
+    padding-left: 30px;
+    padding-right: 30px;
+
+    text-align: center;
+
+    background-color: white;
+
+    border: 1px solid #555;
+}
+
+a.otr-unlocked {
+    background-image: url(chrome-extension://__MSG_@@extension_id__/img/unlock-alt.png);
+}
+a.otr-unlocked:hover {
+    background-image: url(chrome-extension://__MSG_@@extension_id__/img/unlock-alt-hover.png);
+}
+
+a.otr-locked {
+    background-image: url(chrome-extension://__MSG_@@extension_id__/img/lock.png);
+}
+a.otr-locked:hover {
+    background-image: url(chrome-extension://__MSG_@@extension_id__/img/lock-hover.png);
+}
+
+.otr-button {
+    background-position: center;
+    background-size: 13px auto;
+    background-repeat: no-repeat;
+    width: 22px;
+}
+
+.safe-chat {
+    background-color: white;
+
+    border-top: none;
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+    border-bottom: none;
+}
+
+.safeEntry {
+    background-color: #fffff0;
+}
