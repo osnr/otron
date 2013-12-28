@@ -11,13 +11,14 @@
 
             "css": ["fbotr.css"],
             "js": ["lib/bigint.js", "lib/crypto.js", "lib/eventemitter.js",
-                   "lib/otr.js", "lib/jquery.min.js", "lib/jquery.waituntilexists.js",
+                   "lib/otr.js", "lib/jquery.min.js", "shared.js",
                    "fbotr.js"]
         }
     ],
 
     "background": {
-        "scripts": ["event.js"],
+        "scripts": ["lib/bigint.js", "lib/crypto.js", "lib/eventemitter.js",
+                    "lib/otr.js", "shared.js", "event.js"],
         "persistent": false
     },
 

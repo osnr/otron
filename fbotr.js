@@ -1,9 +1,7 @@
-var chatIsEncryptKey = function(ownId, id) {
-    return "chat-" + ownId + "-" + id + "-encrypt";
-};
+"use strict";
 
-var privKeyKey = function(ownId) {
-    return "priv-key-" + ownId;
+var chatIsEncryptKey = function(ownId, id) {
+    return makeName(["chat", ownId, id, "encrypt"]);
 };
 
 function s4() {
@@ -23,9 +21,10 @@ function random(len) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// FRAGILE ajax request construction
 function generatePhstamp(qs, dtsg) {
     var input_len = qs.length;
-    numeric_csrf_value='';
+    var numeric_csrf_value='';
     
     for(var ii=0;ii<dtsg.length;ii++) {
         numeric_csrf_value+=dtsg.charCodeAt(ii);
@@ -69,25 +68,18 @@ var sendMessage = function(fbid, targetFbid, dtsg, msg) {
     });
 };
 
-var Chat = function(chat, ownId, privKey) {
-    var self = this;
-
+var Chat = function(chat, ownId) {
     var id = $(chat).find('.uiMenu .uiMenuItem > ' +
                           '.itemAnchor[href^="https://www.facebook.com/messages/"]')
-        .attr("href")
+        .attr("href");
     if (!id || /\/messages\/conversation-id/.test(id)) {
-        return; // exclude group chat
+        return false; // exclude group chat
     }
-    id = id.substring("https://www.facebook.com/messages/".length)
+    id = id.substring("https://www.facebook.com/messages/".length);
 
-    var dtsg = $('input[name="fb_dtsg"]').val()
+    var dtsg = $('input[name="fb_dtsg"]').val();
 
-    $(chat).attr("id", function(i, attr) {
-        self.chatId = attr || "chat-" + guid();
-        return self.chatId;
-    });
-
-    console.log("coverin", chat, self.chatId, id);
+    console.log("coverin", chat, ownId, id);
 
     chrome.storage.local.get(chatIsEncryptKey(ownId, id), function(items) {
         if (chrome.runtime.lastError || $.isEmptyObject(items)) {
@@ -108,10 +100,13 @@ var Chat = function(chat, ownId, privKey) {
         chrome.storage.local.remove(chatIsEncryptKey(ownId, id));
     };
 
-    // unencrypted state stuff
+    // flip into unencrypted state
     var notEncrypted = function() {
         $(chat).find(".otr-locked").remove();
-        unencryptEntry();
+        unencryptChat();
+
+        chrome.runtime.onConnect.removeListener(runtimeOnConnect);
+        if (observer) observer.disconnect();
 
         addEncryptButton();
     };
@@ -126,57 +121,40 @@ var Chat = function(chat, ownId, privKey) {
             });
     };
 
-    var unencryptEntry = function() {
+    var unencryptChat = function() {
         $(chat)
-            .find(".safeEntry")
-                .remove().end()
-            .find(".unsafeEntry")
-                .removeClass("unsafeEntry")
-                .show();
+            .find(".safe-chat").remove().end()
+            .find(".fbNubFlyoutBody").show().end()
+            .find(".fbNubFlyoutFooter").show().end();
     };
 
-    // encrypted state stuff
+    // flip into encrypted state
     var encrypted = function() {
         $(chat).find(".otr-unlocked").remove();
 
         encryptChat();
 
-        chrome.runtime.onConnect.addListener(function(port) {
-            console.log(id, "got new port", port);
-            if (port.name !== "unsafe-port-" + self.chatId) return;
+        chrome.runtime.onConnect.addListener(runtimeOnConnect);
 
-            self.buddy = new OTR({
-                fragment_size: 63206, // rumored max fb msg length
-                send_interval: 200,
-                priv: privKey
-            });
+        addDecryptButton();
+    };
 
-            self.buddy.on('ui', function(msg, encrypted) {
-                console.log("OTR is gonna fwd to port", arguments);
-                port.postMessage({ type: 'recv',
-                                   sender: id,
-                                   msg: msg });
-            });
+    var runtimeOnConnect = function(port) {
+        // fires when a channel is opened to this tab
 
-            self.buddy.on('io', function(eMsg) {
-                // io -- send (encrypted) message out to wire
-                sendMessage(ownId, id, dtsg, eMsg);
-            });
+        console.log(id, "got new port", port);
+        if (port.name !== unsafePortName(ownId, id)) return;
 
-            self.buddy.on('error', function(error) { alert(error); });
+        listenForMessages(function(msg) {
+            port.postMessage({ type: 'unsafeRecv',
+                               msg: msg });
+        });
 
-            listenForMessages(function(msg) {
-                self.buddy.receiveMsg(msg);
-            });
-
-            port.onMessage.addListener(function(data) {
-                // the user wants to send a message
-                if (data.type === 'send') {
-                    self.buddy.sendMsg(data.msg);
-                }
-            });
-
-            addDecryptButton();
+        port.onMessage.addListener(function(data) {
+            // the user wants to send a message
+            if (data.type === 'unsafeSend') {
+                sendMessage(ownId, id, dtsg, data.msg);
+            }
         });
     };
 
@@ -191,14 +169,14 @@ var Chat = function(chat, ownId, privKey) {
     };
 
     var encryptChat = function() {
-        // chat id is not secure (evil fb.com can mess with iframe src) but this seems OK
+        // fbids are not secure (evil fb.com can mess with iframe src) but this seems OK
         // since evil fb.com can only switch around / break conversations this way,
         // which they could do anyway
-        $safeChat = $('<iframe class="safe-chat" src="' + chrome.extension.getURL("safechat.html") +
-                      '?' + self.chatId + '"></iframe>');
+        var $safeChat = $('<iframe class="safe-chat" src="' + chrome.extension.getURL("safechat.html") +
+                          '?' + makeName([ownId, id]) + '"></iframe>');
         $(chat)
             .find(".fbNubFlyoutBody")
-                .width(function(i, width) {
+                .width(function(i, width) { // TODO deal with zero case
                     $safeChat.width(width);
                     return false;
                 })
@@ -212,39 +190,29 @@ var Chat = function(chat, ownId, privKey) {
                 .hide()
                 .parent()
                     .append($safeChat);
-
-        // $unsafeEntry = $(chat).find(".fbNubFlyoutFooter .uiTextareaAutogrow")
-        //     .addClass("unsafeEntry");
-
-        // if (!$unsafeEntry) return;
-        // // TODO filter group chat
-
-        // style = $unsafeEntry.attr("style");
-        // klass = $unsafeEntry.attr("class");
-
-        // $unsafeEntry.hide();
-
-        // $safeEntry = $('<textarea class="'+klass+' safeEntry" style="'+style+'"></textarea>')
-        //     .insertAfter($unsafeEntry);
     };
 
+    var observer;
     var listenForMessages = function(callback) {
         // create an observer instance
         var seen = [];
-        var observer = new MutationObserver(function(mutations) {
+        observer = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
+                // FRAGILE drill down to individual message elements
                 $(mutation.addedNodes).find("*").andSelf()
                     .find('[data-jsid="message"]').each(function(i, msgEl) {
+                        // skip duplicate node-add events
                         if ($.inArray(msgEl, seen) !== -1) return;
 
                         seen.push(msgEl);
                         var $msgEl = $(msgEl);
 
                         var msg = $msgEl.text();
+
+                        // FRAGILE detect if msg is ours (or doesn't exist)
                         if (!msg || $msgEl.closest(".fbChatConvItem")
                             .find(".profileLink").attr("href") === "#") {
 
-                            // it's not valid, or it's our own message
                             return;
                         }
 
@@ -259,11 +227,11 @@ var Chat = function(chat, ownId, privKey) {
         observer.observe($(chat).find(".conversation")[0], config);
     };
 
-    chrome.storage.onChanged.addListener(function(changes, areaName) {
-        for (key in changes) {
+    var storageOnChanged = function(changes, areaName) {
+        for (var key in changes) {
             if (key !== chatIsEncryptKey(ownId, id)) continue;
 
-            ch = changes[key];
+            var ch = changes[key];
             if (ch.newValue === true && !('oldValue' in ch)) {
                 encrypted();
             } else if (!('newValue' in ch) && ch.oldValue === true) {
@@ -272,17 +240,46 @@ var Chat = function(chat, ownId, privKey) {
 
             return;
         }
-    });
+    };
+    chrome.storage.onChanged.addListener(storageOnChanged);
+
+    this.el = chat;
+    this.destroy = function() {
+        // the chatbox has been closed, we assume all nodes are destroyed
+        // (partial overlap with notEncrypted)
+        console.log("destroying");
+        chrome.storage.onChanged.removeListener(storageOnChanged);
+        chrome.runtime.onConnect.removeListener(runtimeOnConnect);
+    };
+
+    return this;
 };
 
 function start(target, ownId, privKey) {
+    var chats = [];
+
     // create an observer instance
     var observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             for (var i = 0; i < mutation.addedNodes.length; ++i) {
-                addedNode = mutation.addedNodes[i];
+                var addedNode = mutation.addedNodes[i];
 
-                new Chat(addedNode, ownId, privKey);
+                var chat = new Chat(addedNode, ownId, privKey);
+                if (chat) chats.push(chat);
+            }
+
+            for (i = 0; i < mutation.removedNodes.length; ++i) {
+                var removedNode = mutation.removedNodes[i];
+                console.log("removedNode", removedNode);
+
+                for (var j = 0; j < chats.length; ++j) {
+                    var chat = chats[j];
+                    if (chat.el === removedNode) {
+                        chat.destroy();
+                        chats.splice(j, 1);
+                        break;
+                    }
+                }
             }
         });
     });
@@ -292,46 +289,6 @@ function start(target, ownId, privKey) {
 
     observer.observe(target, config);
 
-    // hook in to allow us to send encrypted messages
-    // post a message to the window like:
-    // { type: "sendMsg", targetChatId: [guid], msg: [encrypted text] }
-    // var sendMessages = function() {
-    //     window.addEventListener("message", function(event) {
-    //         if (event.data.type !== "sendMsg") return;
-
-    //         var unsafeEntry = document.getElementById(event.data.targetChatId)
-    //             .querySelector(".fbNubFlyoutFooter .uiTextareaAutogrow");
-
-    //         unsafeEntry.value = event.data.msg;
-
-    //         // debugger;
-    //         var evt = document.createEvent("KeyboardEvent");
-
-    //         // ridiculous workaround from http://stackoverflow.com/questions/10455626/keydown-simulation-in-chrome-fires-normally-but-not-the-correct-key/10520017#10520017
-    //         // for webkit bug #16735
-    //         Object.defineProperty(evt, 'keyCode', {
-    //             get: function() {
-    //                 return this.keyCodeVal;
-    //             }
-    //         });
-    //         Object.defineProperty(evt, 'which', {
-    //             get: function() {
-    //                 return this.keyCodeVal;
-    //             }
-    //         });
-
-    //         evt.initKeyboardEvent("keydown", true, true, window,
-    //                               false, false, false, false,
-    //                               13, 13);
-    //         evt.keyCodeVal = 13;
-    //         // var evt = document.createEvent('Events');
-    //         // evt.initEvent('keydown', true, true);
-    //         // evt.which = 13;
-    //         unsafeEntry.dispatchEvent(evt);
-    //     });
-    // };
-    // $(document.body).append("<script>;(" + String(sendMessages) + ")();</script>");
-
     $(".fbDockChatTabFlyout").each(function(i, el) { new Chat(el, ownId, privKey); });
 };
 
@@ -340,16 +297,18 @@ $(document).ready(function() { // TODO do we need to wait till document.ready?
     window.setTimeout(function init() {
         console.log("checking");
 
-        // select the target node
-        var target = $("#ChatTabsPagelet > .fbNubGroup > .fbNubGroup")[0]; // fragile
+        // FRAGILE select the chat tab bar
+        var target = $("#ChatTabsPagelet > .fbNubGroup > .fbNubGroup")[0];
 
         var notReady = !target;
 
-        gt = $(".fbxWelcomeBoxName").data("gt") || $(".timelineUnitContainer").data("gt")
+        // FRAGILE get own fbid
+        var gt = $(".fbxWelcomeBoxName").data("gt") || $(".timelineUnitContainer").data("gt");
         var ownId = gt.bmid || gt.viewerid || $("input[name=targetid]").val();
 
         notReady = notReady || !ownId;
 
+        // FRAGILE wait until we have tabs loaded for all chats
         $(".fbDockChatTabFlyout").each(function(i, el) {
             if (!$(el).find(".titlebarText").attr("href")) {
                 notReady = true;
@@ -363,11 +322,12 @@ $(document).ready(function() { // TODO do we need to wait till document.ready?
         }
 
         // check/generate DSA key here
+        // (this should probably be in event.js,
+        //  but I need to expose the blocking delay
+        //  to the user on the FB page)
         chrome.storage.local.get(privKeyKey(ownId), function(items) {
             if (privKeyKey(ownId) in items) {
-                privKey = DSA.parsePrivate(items[privKeyKey(ownId)]);
-
-                start(target, ownId, privKey);
+                start(target, ownId);
 
             } else {
                 $msg = $('<div class="gen-key"><div class="gen-key-dialog">Generating chat encryption key. Please wait a few seconds...</div></div>')
@@ -382,15 +342,15 @@ $(document).ready(function() { // TODO do we need to wait till document.ready?
                             return;
                         }
 
-                        privKey = new DSA();
+                        var privKey = new DSA();
 
-                        obj = {};
+                        var obj = {};
                         obj[privKeyKey(ownId)] = privKey.packPrivate();
 
                         chrome.storage.local.set(obj, function() {
                             $msg.fadeOut(function() { $msg.remove(); });
 
-                            start(target, ownId, privKey);
+                            start(target, ownId);
                         });
                     }, 100);
                 })();

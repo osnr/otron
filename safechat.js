@@ -1,14 +1,19 @@
+"use strict";
+
 (function() {
-    var chatId = window.location.search.substring(1);
+    var paramPieces = window.location.search.substring(1).split("-");
+    var ownId = paramPieces[0];
+    var id = paramPieces[1];
 
-    console.log("iframe online with id", chatId);
+    console.log("iframe online between", ownId, " and ", id);
 
-    var port = chrome.runtime.connect({ name: "safe-port-" + chatId });
+    // TODO share makeName from fbotr.js (these ids are already escaped for "-" anyway, though)
+    var port = chrome.runtime.connect({ name: "safe-port-" + ownId + "-" + id });
 
     var displayMsg = function(msg, own) {
         var msgEl = document.createElement("div");
         msgEl.innerText = msg;
-        msgEl.className = "message"
+        msgEl.className = "message";
         document.body.appendChild(msgEl);
 
         if (own) msgEl.className += " own";
@@ -18,13 +23,15 @@
 
     port.onMessage.addListener(function(data) {
         console.log("iframe got", data);
-        if (data.type === "recv") {
+        if (data.type === 'recv') {
             displayMsg(data.msg, false);
+        } else if (data.type === 'recvOwn') {
+            displayMsg(data.msg, true);
         }
     });
 
     window.onload = function() {
-        entry = document.getElementById("entry");
+        var entry = document.getElementById("entry");
         entry.onkeydown = function(e) {
             if (e.keyCode === 13 && !e.shiftKey) {
                 var msg = entry.value;
