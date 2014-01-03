@@ -10,18 +10,6 @@
     z-index: 500;
 
     background-color: rgba(0, 0, 0, .4);
-    /* top: 50%; */
-    /* left: 50%; */
-
-    /* height: 100px; */
-    /* width: 100px; */
-
-    /* margin-top: -50px; */
-    /* margin-left: -50px; */
-
-    /* background-color: #aaa; */
-
-    /* z-index: 10; */
 }
 
 .gen-key .gen-key-dialog {
@@ -31,14 +19,14 @@
     top: 50%;
     left: 50%;
 
-    height: 15px;
-    margin-top: -7x;
+    height: 60px;
+    margin-top: -7px;
 
     width: 350px;
     margin-left: -175px;
 
-    padding-top: 20px;
-    padding-bottom: 20px;
+    padding-top: 15px;
+    padding-bottom: 15px;
 
     padding-left: 30px;
     padding-right: 30px;
@@ -65,19 +53,29 @@ a.otr-locked:hover {
 }
 
 .otr-button {
-    background-position: center;
-    background-size: 13px auto;
+    background-position: 6px 6px;
+    background-size: 12px auto;
     background-repeat: no-repeat;
     width: 22px;
 }
 
 .safe-chat {
+    position: absolute;
+    top: 26px;
+    left: 0;
+
     background-color: white;
 
     border-top: none;
-    border-left: 1px solid black;
-    border-right: 1px solid black;
+    border-left: 1px solid rgb(166,168,171);
+    border-right: 1px solid rgb(166,168,171);
     border-bottom: none;
+
+    height: 100%;
+    max-height: 259px;
+    width: 258px;
+
+    z-index: 100;
 }
 
 .safeEntry {

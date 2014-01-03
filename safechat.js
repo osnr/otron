@@ -11,12 +11,18 @@
     var port = chrome.runtime.connect({ name: "safe-port-" + ownId + "-" + id });
 
     var displayMsg = function(msg, own) {
+        var rowEl = document.createElement("div");
+        rowEl.className = "row";
+
         var msgEl = document.createElement("div");
         msgEl.innerText = msg;
         msgEl.className = "message";
-        document.body.appendChild(msgEl);
-
         if (own) msgEl.className += " own";
+        rowEl.appendChild(msgEl);
+
+        var msgs = document.getElementById("messages");
+        msgs.appendChild(rowEl);
+        msgs.scrollTop = msgs.scrollHeight;
 
         return msgEl;
     };
@@ -32,6 +38,9 @@
 
     window.onload = function() {
         var entry = document.getElementById("entry");
+
+        autogrow(entry);
+
         entry.onkeydown = function(e) {
             if (e.keyCode === 13 && !e.shiftKey) {
                 var msg = entry.value;
@@ -44,5 +53,18 @@
                 return false;
             }
         };
+    };
+
+    // from http://georgepapadakis.me/demo/expanding-textarea.html
+    var autogrow = function(t) {
+        var resize = function(t) {
+            var lines = t.value.split("\n").length;
+
+            t.style.height = (25 + 11.5 * (lines - 1)) + 'px';
+        };
+
+        t.addEventListener('input', function(event) {
+            resize(t);
+        });
     };
 })();
