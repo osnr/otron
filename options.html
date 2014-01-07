@@ -1,0 +1,115 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="css/chrome-bootstrap.css"></link>
+        <script src="lib/jquery.min.js"></script>
+        <script src="js/options.js"></script>
+
+        <title>OTR for Facebook Chat Options</title>
+
+        <style>
+            .fingerprint-view > dl {
+                margin-top: -0.5em;
+            }
+            .fingerprint-name {
+                font-weight: bold;
+            }
+        </style>
+    </head>
+
+    <body class="chrome-bootstrap">
+        <div class="frame">
+            <div class="navigation">
+                <h1><a href="#">OTR for FB</a></h1>
+
+                <ul class="menu">
+                    <li class="selected"><a href="#chat">Chat</a></li>
+                    <li><a href="#keys">Keys</a></li>
+                    <li><a href="#security">Security</a></li>
+                </ul>
+            </div>
+            <div class="mainview view">
+                <div id="chat" class="selected">
+                    <header>
+                        <h1>Chat</h1>
+                    </header>
+                    <div class="content">
+                        <!-- <section> -->
+                        <!--     <h3>Whitespace tagging</h3> -->
+                        <!--     By default, OTR for Facebook Chat tags some messages you send to your friends with a pattern of spaces, letting them know that you're ready to encrypt. This pattern is usually invisible. -->
+                        <!--     <p> -->
+                        <!--         <label> -->
+                        <!--             <input type="checkbox"> -->
+                        <!--             <span>Enable whitespace tagging</span> -->
+                        <!--         </label> -->
+                        <!--     </p> -->
+                        <!-- </section> -->
+                    </div>
+                </div>
+                <div id="keys">
+                    <header>
+                        <h1>Keys</h1>
+                    </header>
+                    <div class="content">
+                        <h2>Your key pair</h2>
+                        <p>All messages you send and receive with OTR are encrypted using a randomly generated <em>key pair</em>, which includes a <em>public</em> and a <em>private</em> key. The private key is not viewable here, but it's stored on your computer.
+                        <section id="own-public-key">
+                            <h3>Public key</h3>
+                            <p>This is your public key fingerprint. Share it with friends, as directed in the Friends' keys section.</p>
+                        </section>
+                        <section>
+                            <h3>Regenerate</h3>
+                            <p>You can regenerate your public/private key pair if you think it's been compromised. Make sure you let your friends know that you've changed your keys!</p>
+                            <button>Regenerate</button>
+                        </section>
+
+                        <h2>Friends' keys</h2>
+                        <p>The public key fingerprints of friends with whom you've used OTR are listed here.<p>
+                        <p>When you speak with a friend on another secure communications channel, especially in person, you should compare the fingerprint in their OTR for Facebook options with the one listed here. If they don't match, either your friend has changed keys, or someone has been impersonating them.</p>
+                        <div id="key-list">
+                            <div class="fingerprint-view controls fingerprint-view-template" style="display: none">
+                                <dl>
+                                    <dt class="fingerprint-name">Alice</dt>
+                                    <dd class="fingerprint">FO:OB:AR:BA:ZQ:UX</dd>
+                                </dl>
+                                <div class="spacer"></div>
+                                <button class="show-key">Show public key</button>
+                                <button class="remove-key">Remove</button>
+                            </div>
+                        </div>
+                        <div class="overlay" style="display: none;">
+                            <div class="page">
+                                <h1>test</h1>
+                                <div class="close-button"></div>
+                                <div class="content-area">
+                                    this is some content
+                                </div>
+                                <div class="action-area">
+                                    <div class="action-area-right">
+                                        <div class="button-strip">
+                                            <button>Done</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="security">
+                    <header>
+                        <h1>Security</h1>
+                    </header>
+                    <div class="content">
+                        <section>
+                            <h3>Security token</h3>
+                            <p>This security token watermark sits underneath all messages OTR for Facebook Chat decrypts. If you don't see this token below a chat bubble, it may or may not have been tampered with. (It may just be unencrypted.)</p>
+                        </section>
+                        <section>
+                            <h3>Secure input verification</h3>
+                            <p>This color was generated alongside your security token. A small symbol of this color, sitting on the right side of the input field, should update as you type in an encrypted message. If the symbol is the wrong color or isn't updating while you compose your message, your message has gone somewhere else, possibly to an attacker.</p>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

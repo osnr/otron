@@ -1,10 +1,11 @@
 "use strict";
 
 var chatIsEncryptKey = function(ownId, id) {
-    return makeName(["chat", ownId, id, "encrypt"]);
+    return makeName(["chatEncrypt", ownId, id]);
 };
 
 var sendMessage = (function() {
+    // based on Krumiro bookmarklet: https://gist.github.com/FiloSottile/4215248
     function random(len) {
         var min = Math.pow(10, len-1);
         var max = Math.pow(10, len);
@@ -68,8 +69,16 @@ function runInPageContext(f) {
 }
 
 var receiveListeners = {}; // map targetFbid -> callback
-var initReceiveListening = function() {
+var setReceiveListener = function(fbid, callback) {
+    receiveListeners[fbid] = callback;
+};
+var removeReceiveListener = function(fbid) {
+    delete receiveListeners[fbid];
+};
+
+var initChatInterception = function() {
     runInPageContext(function() {
+        /* intercept incoming messages and forward to us so we can look for ?OTR: */
         var ctmv = require("ChatTabMessagesView").prototype;
         var anm = ctmv._appendNewMessages;
 
@@ -84,6 +93,27 @@ var initReceiveListening = function() {
             });
 
             return anm.apply(this, arguments);
+        };
+
+        /* whitespace-tag outgoing FB messages (doesn't include our OTRed ones) */
+        var msd = require("MercuryServerDispatcher");
+        var ts = msd.trySend;
+
+        msd.trySend = function(uri, data) {
+            if (uri === "/ajax/mercury/send_messages.php" &&
+                "message_batch" in data) {
+
+                for (var i = 0; i < data.message_batch.length; i++) {
+                    /* append constant WHITESPACE_TAG */
+                    data.message_batch[i].body +=
+                        "\x20\x09\x20\x20\x09\x09\x09\x09" +
+                        "\x20\x09\x20\x09\x20\x09\x20\x20" +
+                        "\x20\x20\x09\x09\x20\x20\x09\x20" + /* OTRv2 */
+                        "\x20\x20\x09\x09\x20\x20\x09\x09"; /* OTRv3 */
+                }
+            }
+
+            return ts.apply(this, arguments);
         };
     });
 
@@ -101,12 +131,6 @@ var initReceiveListening = function() {
         }
     });
 };
-var setReceiveListener = function(fbid, callback) {
-    receiveListeners[fbid] = callback;
-};
-var removeReceiveListener = function(fbid) {
-    delete receiveListeners[fbid];
-};
 
 var Chat = function(chat, ownId) {
     // FRAGILE get user id of friend
@@ -117,6 +141,8 @@ var Chat = function(chat, ownId) {
         return false; // exclude group chat
     }
     id = id.substring("https://www.facebook.com/messages/".length);
+
+    var name = $(chat).find('.titlebarText').text();
 
     var dtsg = $('input[name="fb_dtsg"]').val();
 
@@ -137,9 +163,9 @@ var Chat = function(chat, ownId) {
             if (key !== chatIsEncryptKey(ownId, id)) continue;
 
             var ch = changes[key];
-            if (ch.newValue === true && !('oldValue' in ch)) {
+            if (ch.newValue && !('oldValue' in ch)) {
                 encrypted();
-            } else if (!('newValue' in ch) && ch.oldValue === true) {
+            } else if (!('newValue' in ch) && ch.oldValue) {
                 notEncrypted();
             }
 
@@ -149,7 +175,7 @@ var Chat = function(chat, ownId) {
     chrome.storage.onChanged.addListener(storageOnChanged);
 
     // state change procedures -- these will trigger
-    // the async storage change event at the bottom
+    // the async storageOnChanged event above
     // which is what actually activates encryption
     // (for all tabs at once, not just this one)
     var enableEncryption = function() {
@@ -175,6 +201,7 @@ var Chat = function(chat, ownId) {
         setReceiveListener(id, function(data) {
             if (data.msg.substring(0, 4) === "?OTR") {
                 chrome.runtime.sendMessage({
+                    type: 'unsafeRecvOtr',
                     ownId: ownId,
                     id: id,
                     mid: data.mid,
@@ -285,22 +312,23 @@ var Chat = function(chat, ownId) {
     return this;
 };
 
-function start(target, ownId, privKey) {
-    initReceiveListening();
+function start(target, ownId) {
+    initChatInterception();
 
     var chats = [];
-    var addChat = function(el, ownId, privKey) {
-        var chat = new Chat(el, ownId, privKey);
+    var addChat = function(el, ownId) {
+        var chat = new Chat(el, ownId);
         if (chat) chats.push(chat);
     };
 
     // create an observer instance
+    // TODO replace with more FB hooks :D
     var observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             for (var i = 0; i < mutation.addedNodes.length; ++i) {
                 var addedNode = mutation.addedNodes[i];
 
-                addChat(addedNode, ownId, privKey);
+                addChat(addedNode, ownId);
             }
 
             for (i = 0; i < mutation.removedNodes.length; ++i) {
@@ -324,7 +352,7 @@ function start(target, ownId, privKey) {
 
     observer.observe(target, config);
 
-    $(".fbDockChatTabFlyout").each(function(i, el) { addChat(el, ownId, privKey); });
+    $(".fbDockChatTabFlyout").each(function(i, el) { addChat(el, ownId); });
 };
 
 $(document).ready(function() { // TODO do we need to wait till document.ready?
@@ -364,41 +392,6 @@ $(document).ready(function() { // TODO do we need to wait till document.ready?
             return;
         }
 
-        // check/generate DSA key here
-        // (this should probably be in event.js,
-        //  but I need to expose the blocking delay
-        //  to the user on the FB page)
-        chrome.storage.local.get(privKeyKey(ownId), function(items) {
-            if (privKeyKey(ownId) in items) {
-                start(target, ownId);
-
-            } else {
-                var $msg = $('<div class="gen-key"><div class="gen-key-dialog"><p>Generating chat encryption key. This\'ll only happen once.</p>' +
-                         '<p>Please wait a few seconds...</p></div></div>')
-                    .hide()
-                    .appendTo($("body"))
-                    .fadeIn();
-
-                (function waitUntilMsg() {
-                    window.setTimeout(function() {
-                        if ($(".gen-key").length === 0) {
-                            waitUntilMsg();
-                            return;
-                        }
-
-                        var privKey = new DSA();
-
-                        var obj = {};
-                        obj[privKeyKey(ownId)] = privKey.packPrivate();
-
-                        chrome.storage.local.set(obj, function() {
-                            $msg.fadeOut(function() { $msg.remove(); });
-
-                            start(target, ownId);
-                        });
-                    }, 100);
-                })();
-            }
-        });
+        start(target, ownId);
     }, interval);
 });

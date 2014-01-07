@@ -7,8 +7,8 @@
 
     console.log("iframe online between", ownId, " and ", id);
 
-    // TODO share makeName from fbotr.js (these ids are already escaped for "-" anyway, though)
-    var port = chrome.runtime.connect({ name: "safe-port-" + ownId + "-" + id });
+    // TODO share makeName from shared.js (these ids are already escaped for "-" anyway, though)
+    var port = chrome.runtime.connect({ name: "safePort-" + ownId + "-" + id });
 
     var displayMsg = function(msg, own) {
         var rowEl = document.createElement("div");

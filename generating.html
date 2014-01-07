@@ -1,0 +1,37 @@
+<html>
+    <head>
+        <title>OTR for Facebook Chat</title>
+        <script src="lib/jquery.min.js"></script>
+        <script src="lib/identicon.js"></script>
+        <script src="js/generating.js"></script>
+
+        <style>
+            body {
+                font-family: 'lucida grande',tahoma,verdana,arial,sans-serif;
+                font-size: 11px;
+            }
+
+            a {
+                text-decoration: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="generating">
+            <p>Generating DSA encryption key pair.</p>
+            <p>This will only happen once.</p>
+            <p>Please wait a few seconds...</p>
+        </div>
+        <div style="display: none" id="done">
+            <p>You're ready to chat.</p>
+            <p>For extra security, remember this icon.</p>
+            <div id="token">
+                <canvas width="128" height="128"></canvas>
+                <p>This is your personal <em>security token</em>.</p>
+                <p>It will appear in the background of any authentic encrypted Facebook chat.</p>
+            </div>
+            <p>You should also remember <span id="bg-color">this color</span>; a different token with this color will change as you type new chat messages, confirming that they're being entered securely.</p>
+            <p><a href="antiredress.html">Learn more about security tokens.</a></p>
+        </div>
+    </body>
+</html>

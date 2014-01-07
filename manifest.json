@@ -3,22 +3,23 @@
 
     "name": "OTR for Facebook Chat",
     "version": "0.1",
-    "description": "Allows you to encrypt your Facebook chats.",
+    "description": "Encrypt your Facebook chats.",
 
     "content_scripts": [
         {
             "matches": ["*://*.facebook.com/*"],
 
-            "css": ["fbotr.css"],
+            "css": ["css/fbotr.css"],
             "js": ["lib/bigint.js", "lib/crypto.js", "lib/eventemitter.js",
-                   "lib/otr.js", "lib/jquery.min.js", "shared.js",
-                   "fbotr.js"]
+                   "lib/otr.js", "lib/jquery.min.js", "js/shared.js",
+                   "js/fbotr.js"]
         }
     ],
 
     "background": {
         "scripts": ["lib/bigint.js", "lib/crypto.js", "lib/eventemitter.js",
-                    "lib/otr.js", "shared.js", "event.js"],
+                    "lib/otr.js", "js/shared.js",
+                    "js/genkey.js", "js/event.js"],
         "persistent": false
     },
 
@@ -29,6 +30,8 @@
         "img/lock.png",
         "img/lock-hover.png"
     ],
+
+    "options_page": "options.html",
 
     "permissions": ["storage"]
 }
