@@ -84,7 +84,7 @@ window.addEventListener('message', function(event) {
         if (data.type === 'akeSuccess') {
             akeSuccess(data.fingerprint, data.trust, data.prevFingerprints);
         } else if (data.type === 'recv') {
-            displayMsg(data.msg, false);
+            displayMsg(data.msg, false, data.encrypted);
         } else if (data.type === 'recvOwn') {
             displayMsg(data.msg, true, true); // all messages sent from safechat are encrypted
         }

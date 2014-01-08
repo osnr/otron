@@ -147,7 +147,7 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
 
                 var knownFingerprints = items[knownFingerprintsKey];
                 if (knownFingerprints && knownFingerprints.length > 0) {
-                    matchingFingerprints = knownFingerprints.filter(
+                    var matchingFingerprints = knownFingerprints.filter(
                         function(fp) {
                             return fp.fingerprint === curFingerprint; });
 
@@ -251,7 +251,7 @@ var connectTab = function(user, ownId, id, tabId, safePort) {
 
 var otrSeen = [];
 var otrQueue = {};
-chrome.runtime.onMessage.addListener(function(data) {
+chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
     if (data.type === 'unsafeRecvOtr') {
         // "random" OTR messages received in unencrypted mode
         // (say, if Alice is talking to Bob and Bob suddenly encrypts

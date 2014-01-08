@@ -143,7 +143,8 @@ var Chat = function(chat, ownId) {
     id = id.substring("https://www.facebook.com/messages/".length);
 
     // record name for UI convenience in Options
-    storageSet(makeName(["name", ownId, id]), $(chat).find('.titlebarText').text());
+    var name = $(chat).find('.titlebarText').text();
+    storageSet(makeName(["name", ownId, id]), name);
 
     var dtsg = $('input[name="fb_dtsg"]').val();
 
@@ -187,6 +188,23 @@ var Chat = function(chat, ownId) {
         chrome.storage.local.remove(chatIsEncryptKey(ownId, id));
     };
 
+    var supports = function(prompt) {
+        $(chat).find(".fbNubFlyoutTitlebar").after(
+            $('<div class="otr-header"></div>')
+                .click(function() {
+                    $(chat).find(".otr-header").remove();
+                })
+                .append($('<span class="otr-supports"></span>')
+                        .text(name.split(" ")[0] + " " + prompt + "."))
+                .append($('<button class="otr-button otr-encrypt">Encrypt</button>')
+                        .click(function() {
+                            $(chat).find(".otr-header").remove();
+                            enableEncryption();
+                            return false;
+                        }))
+        );
+    };
+
     // set up unencrypted state
     var notEncrypted = function(initializing) {
         if (!isEncrypted && !initializing) return;
@@ -197,7 +215,27 @@ var Chat = function(chat, ownId) {
 
         chrome.runtime.onConnect.removeListener(runtimeOnConnect);
         setReceiveListener(id, function(data) {
-            if (data.msg.substring(0, 4) === "?OTR") {
+            var tagPoint = data.msg.indexOf("\x20\x09\x20\x20\x09\x09\x09\x09" +
+                                            "\x20\x09\x20\x09\x20\x09\x20\x20");
+            if (tagPoint !== -1) {
+                // handle whitespace tag
+                var tagRest = data.msg.substr(tagPoint + 16);
+                if (tagRest.indexOf("\x20\x20\x09\x09\x20\x20\x09\x20") !== -1 || // supports OTRv2
+                    tagRest.indexOf("\x20\x20\x09\x09\x20\x20\x09\x09") !== -1) { // supports OTRv3
+                    
+                    supports("can chat securely");
+                }
+
+            } else if (data.msg.substring(0, 4) === "?OTR") {
+                if (data.msg.substring(0, 5) === "?OTR:") {
+                    // weird, we got an encrypted message we weren't expecting
+                    supports("sent an encrypted message");
+                    return;
+                }
+
+                // handle OTR sent when we're not in encrypted mode
+                // (usually query messages)
+                // TODO handle errors
                 chrome.runtime.sendMessage({
                     type: 'unsafeRecvOtr',
                     ownId: ownId,
@@ -216,7 +254,7 @@ var Chat = function(chat, ownId) {
 
     var addEncryptButton = function() {
         return $('<a data-hover="tooltip" aria-label="Encrypt this chat with OTR"' +
-                 ' class="otr-unlocked otr-button button" role="button"></a>')
+                 ' class="otr-unlocked otr-icon-button" role="button"></a>')
             .insertAfter($(chat).find(".addToThread"))
             .click(function(e) {
                 enableEncryption();
@@ -331,7 +369,7 @@ var Chat = function(chat, ownId) {
 
     var addDecryptButton = function() {
         return $('<a data-hover="tooltip" aria-label="Stop encrypting this chat"' +
-                 ' class="otr-locked otr-button button" role="button"></a>')
+                 ' class="otr-locked otr-icon-button button" role="button"></a>')
             .insertAfter($(chat).find(".addToThread"))
             .click(function(e) {
                 disableEncryption();

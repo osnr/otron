@@ -13,6 +13,15 @@ body {
 
     top: 0;
     left: 0;
+
+    background-color: #f2f2f2;
+    opacity: 0.8;
+
+    text-align: center;
+
+    background-image: url("../img/ajax-loader.gif");
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
 }
 
 #messages {
