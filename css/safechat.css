@@ -2,8 +2,17 @@ body {
     margin: 0;
     overflow: hidden;
 
-    font-family: 'lucida grande',tahoma,verdana,arial,sans-serif;
+    font-family: 'Lucida Grande',Tahoma,Verdana,Arial,sans-serif;
     font-size: 11px;
+}
+
+#overlay {
+    position: absolute;
+    height: 259px;
+    width: 260px;
+
+    top: 0;
+    left: 0;
 }
 
 #messages {
@@ -19,6 +28,13 @@ body {
 }
 .row {
     min-height: 33px;
+    overflow: auto;
+}
+.profilePhoto {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    left: 4px;
 }
 .message {
     background-color: #f7f7f7;
@@ -29,7 +45,7 @@ body {
     -webkit-border-radius: 4px;
     -webkit-box-shadow: 0 1px 0 #dce0e6;
 
-    margin: 5px 5px 5px 0;
+    margin: 5px 5px 5px 40px;
     padding: 4px 6px 3px 5px;
     float: left;
 
@@ -38,12 +54,17 @@ body {
     text-align: left;
     text-shadow: rgba(255, 255, 255, .5) 0 1px 0;
     white-space: pre-wrap;
+
+    max-width: 157px;
 }
 .message.own {
     background-color: #dbedfe;
     background-image: -webkit-linear-gradient(bottom, #c7defe, #e7f1fe);
 
     float: right;
+}
+.message.encrypted {
+    background-color: green;
 }
 
 #entry {

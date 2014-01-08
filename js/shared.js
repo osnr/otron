@@ -5,3 +5,9 @@ var makeName = function(pieces) {
 var unsafePortName = function(ownId, id) {
     return makeName(["unsafePort", ownId, id]);
 };
+
+var storageSet = function(k, v) {
+    var obj = {};
+    obj[k] = v;
+    chrome.storage.local.set(obj);
+};

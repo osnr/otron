@@ -142,7 +142,8 @@ var Chat = function(chat, ownId) {
     }
     id = id.substring("https://www.facebook.com/messages/".length);
 
-    var name = $(chat).find('.titlebarText').text();
+    // record name for UI convenience in Options
+    storageSet(makeName(["name", ownId, id]), $(chat).find('.titlebarText').text());
 
     var dtsg = $('input[name="fb_dtsg"]').val();
 
@@ -179,10 +180,7 @@ var Chat = function(chat, ownId) {
     // which is what actually activates encryption
     // (for all tabs at once, not just this one)
     var enableEncryption = function() {
-        var obj = {};
-        obj[chatIsEncryptKey(ownId, id)] = true;
-
-        chrome.storage.local.set(obj);
+        storageSet(chatIsEncryptKey(ownId, id), true);
     };
 
     var disableEncryption = function() {
@@ -252,11 +250,9 @@ var Chat = function(chat, ownId) {
     };
 
     var encryptChat = function() {
-        // fbids are not secure (evil fb.com can mess with iframe src) but this seems OK
-        // since evil fb.com can only switch around / break conversations this way,
-        // which they could do anyway
-        var $safeChat = $('<iframe class="safe-chat" src="' + chrome.extension.getURL("safechat.html") +
-                          '?' + makeName([ownId, id]) + '"></iframe>');
+        var $safeChat = $('<iframe class="safe-chat" src="' +
+                          chrome.extension.getURL("safechat.html") +
+                          '"></iframe>');
         $(chat)
             .find(".addToThread").hide().end()
             .find(".fbNubFlyoutBody").hide().end()
@@ -267,6 +263,50 @@ var Chat = function(chat, ownId) {
 
         $(window).resize(function() {
             $safeChat.height($(chat).find(".fbNubFlyoutBody").height());
+        });
+
+        $safeChat.load(function() {
+            // send the iframe a safe package
+            // of information about this chat
+            var data = {
+                type: 'initPackage',
+                ownId: ownId,
+                id: id,
+                messages: $(chat).find(".fbChatConvItem .messages > div > span > span").map(
+                    function(i, el) {
+                        return {
+                            // did you say this thing, or did your friend?
+                            own: $(el).closest(".fbChatConvItem")
+                                .find(".profileLink").attr("href") === "#",
+                            msg: $(el).text()
+                        };
+                    }).get()
+            };
+
+            // first (I hate this hack) we need to
+            // reload and scrape the profile pic
+
+            // read in friend's profile pic,
+            // send it to iframe as data URL
+            // (hack filter for .jpg so we don't get spacer gif)
+            var $pp = $(chat).find('.profilePhoto[src$=".jpg"]').last();
+            if ($pp.length < 1) return "";
+            var src = $pp.attr("src");
+            $pp.attr("crossorigin", "Anonymous")
+                .attr("src", "")
+                .attr("src", src)
+                .on("load", function() {
+                    var canvas = document.createElement("canvas");
+                    canvas.width = $pp[0].width;
+                    canvas.height = $pp[0].height;
+
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage($pp[0], 0, 0);
+
+                    data.profilePhoto = canvas.toDataURL();
+
+                    $safeChat[0].contentWindow.postMessage(data, '*');
+                });
         });
     };
 

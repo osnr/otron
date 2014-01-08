@@ -1,4 +1,8 @@
-var appendKeyView = function(el, name, fingerprint, key, remove) {
+"use strict";
+
+var appendKeyView = function(el, name, fingerprint, trust, remove) {
+    fingerprint = fingerprint.match(/(.{1,8})/g).join(' ');
+
     var $view = $('.fingerprint-view-template')
             .clone()
             .removeClass('fingerprint-view-template');
@@ -8,7 +12,7 @@ var appendKeyView = function(el, name, fingerprint, key, remove) {
             .find('.fingerprint-name').text(name).end()
             .find('.fingerprint').text(fingerprint).end();
     } else {
-        $view.find('dl').remove().end();
+        $view.find('dl').remove();
         $('<div class="fingerprint text"></div>')
             .text(fingerprint)
             .prependTo($view);
@@ -24,39 +28,52 @@ var appendKeyView = function(el, name, fingerprint, key, remove) {
         $view.find('.remove-key').remove();
     }
 
-    return $view
-        .find('.show-key')
-            .click(function() {
-                launchKeyModal(name, key);
-            }).end()
-        .appendTo(el)
-        .show();
+    $view.css('display', '') // why not use show()? cause we don't want display: block
+         .appendTo(el);
 };
 
-var launchKeyModal = function(name, key) {
-    var modal = $('.overlay').clone();
-    $(modal).removeAttr('style');
-    $(modal).find('button, .close-button').click(function() {
-        $(modal).addClass('transparent');
-        setTimeout(function() {
-            $(modal).remove();
-        }, 1000);
-    });
+var loadData = function() {
+    chrome.storage.local.get(null, function(data) {
+        $('#own-public-key .fingerprint-view').remove();
+        $('#key-list .fingerprint-view').remove();
 
-    $(modal).click(function() {
-        $(modal).find('.page').addClass('pulse');
-        $(modal).find('.page').on('webkitAnimationEnd', function() {
-            $(this).removeClass('pulse');
-        });
-    });
-    $(modal).find('.page').click(function(ev) {
-        ev.stopPropagation();
-    });
+        for (var k in data) {
+            if (!data.hasOwnProperty(k)) continue;
 
-    $(modal).find('.page h1').text(name);
-    $(modal).find('.content-area').text(key);
+            var kPieces = k.split('-');
+            if (k === 'ownFingerprint') {
+                var fingerprint = data[k];
 
-    $('body').append(modal);
+                appendKeyView($('#own-public-key'),
+                              '',
+                              fingerprint,
+                              false,
+                              false);
+
+            } else if (kPieces.length === 3 && kPieces[0] === 'knownFingerprints') {
+                var ownId = kPieces[1], id = kPieces[2];
+                var name = data['name-' + ownId + '-' + id];
+                var knownFingerprints = data[k];
+
+                console.log(knownFingerprints);
+                for (var i = 0; i < knownFingerprints.length; i++) {
+                    appendKeyView($('#key-list'),
+                                  name,
+                                  knownFingerprints[i].fingerprint,
+                                  knownFingerprints[i].trust,
+                                  function remove() {
+                                      // TODO fix
+                                      chrome.storage.local.remove(k);
+                                  });
+                }
+            } else if (k === 'tokens') {
+                var tokens = data[k];
+
+                $('#security-token').attr('src', tokens.image);
+                $('#security-color').css('background-color', tokens.color);
+            }
+        }
+    });
 };
 
 $(function() {
@@ -84,37 +101,23 @@ $(function() {
 
     $('.mainview > *:not(.selected)').css('display', 'none');
 
-    chrome.storage.local.get(null, function(data) {
-        var names = {};
-        for (var k in data) {
-            if (!data.hasOwnProperty(k)) continue;
+    // warning: there's sort of a security risk here --
+    // improper filtering could result in attacker triggering
+    // 'regenerate', or 'forget key', just by accessing a URL
+    $('.menu a').filter('[href="' + window.location.hash + '"]').click();
 
-            var kPieces = k.split('-');
-            if (k === 'privKey') {
-                var privKey = DSA.parsePrivate(data[k]);
-                appendKeyView($('#own-public-key'),
-                              false,
-                              privKey.fingerprint(),
-                              privKey.packPublic(),
-                              false);
+    loadData();
 
-            } else if (kPieces.length === 2 && kPieces[0] === 'name') {
-                var id = kPieces[1];
-                names[id] = data[k];
-
-            } else if (kPieces.length === 2 && kPieces[0] === 'keyInfo') {
-                var id = kPieces[1];
-                var keyInfo = data[k];
-
-                appendKeyView($('#key-list'),
-                              names[id],
-                              keyInfo.fingerprint,
-                              keyInfo.pubKey,
-                              function remove() {
-                                  chrome.storage.local.remove(k);
-                              });
-            }
-        }
+    chrome.storage.onChanged.addListener(function(changes, areaName) {
+        // TODO more granular update
+        loadData();
     });
-    appendKeyView($('#own-public-key'), 'Omar Rizwan', 'hello', 'hello1', function() {});
+
+    $('#regenerate-keys').click(function() {
+        chrome.runtime.sendMessage({ type: 'regenKey' });
+    });
+
+    $('#regenerate-tokens').click(function() {
+        chrome.runtime.sendMessage({ type: 'regenTokens' });
+    });
 });

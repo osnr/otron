@@ -8,8 +8,8 @@ var privKey;
         // (if you have multiple users sharing a Chrome,
         //  then they'll all use the same private key)
         if (!("privKey" in items)) {
-            genKey(function(pk) {
-                privKey = pk;
+            generate('genBoth', function(data) {
+                privKey = data.privKey;
             });
         } else {
             privKey = DSA.parsePrivate(items["privKey"]);
@@ -33,6 +33,12 @@ var users = {};
 //     }
 // };
 
+var postToSafePorts = function(chat, data) {
+    for (var tid in chat.tabSafePorts) {
+        chat.tabSafePorts[tid].postMessage(data);
+    }
+};
+
 var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
     if (!instanceTag) {
         var instanceTagKey = makeName(["instanceTag", ownId, id]);
@@ -42,9 +48,7 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
             } else {
                 instanceTag = OTR.makeInstanceTag();
 
-                var obj = {};
-                obj[instanceTagKey] = instanceTag;
-                chrome.storage.local.set(obj);
+                storageSet(instanceTagKey, instanceTag);
             }
 
             callback(initChat(user, ownId, id, tabId, instanceTag));
@@ -113,14 +117,11 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
 
     chat.otr.on('ui', function (msg, encrypted) {
         // display message (decrypted or never-encrypted) to user
-        for (var tid in chat.tabSafePorts) {
-            if (!chat.tabSafePorts.hasOwnProperty(tid)) continue;
-
-            chat.tabSafePorts[tid].postMessage({
-                type: 'recv',
-                msg: msg
-            });
-        }
+        postToSafePorts(chat, {
+            type: 'recv',
+            msg: msg,
+            encrypted: encrypted
+        });
     });
 
     chat.otr.on('io', function (msg) {
@@ -137,14 +138,56 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
         switch (state) {
         case OTR.CONST.STATUS_AKE_SUCCESS:
             // sucessfully ake'd with buddy
-            // check if buddy.msgstate === OTR.CONST.MSGSTATE_ENCRYPTED
-            // TODO record public key
-            
+            var curFingerprint = chat.otr.their_priv_pk.fingerprint();
+            var knownFingerprintsKey = makeName(["knownFingerprints", ownId, id]);
+
+            chrome.storage.local.get(knownFingerprintsKey, function(items) {
+                var trust;
+                var prevFingerprints;
+
+                var knownFingerprints = items[knownFingerprintsKey];
+                if (knownFingerprints && knownFingerprints.length > 0) {
+                    matchingFingerprints = knownFingerprints.filter(
+                        function(fp) {
+                            return fp.fingerprint === curFingerprint; });
+
+                    if (matchingFingerprints.length > 0) {
+                        // fingerprint matched!
+                        trust = matchingFingerprints[0].trust;
+
+                    } else {
+                        // alert user to fingerprint mismatch
+                        trust = 'new';
+                        prevFingerprints = knownFingerprints;
+
+                        // we won't store this fingerprint until it's been verified
+                    }
+
+                } else {
+                    // prompt for verification
+                    trust = 'new';
+
+                    storageSet(knownFingerprintsKey, [{
+                        fingerprint: curFingerprint,
+                        trust: trust
+                    }]);
+                }
+
+                postToSafePorts(chat, {
+                    type: 'akeSuccess',
+
+                    fingerprint: curFingerprint,
+                    trust: trust,
+
+                    prevFingerprints: prevFingerprints // null / undefined if trusted or new
+                });
+            });
+
             break;
         case OTR.CONST.STATUS_END_OTR:
-            // if buddy.msgstate === OTR.CONST.MSGSTATE_FINISHED
-            // inform the user that his correspondent has closed his end
-            // of the private connection and the user should do the same
+            postToSafePorts(chat, {
+                type: 'endOtr'
+            });
             break;
         }
     });
@@ -157,19 +200,17 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
 
     chat.unsafePort.onDisconnect.addListener(chat.unsafePortOnDisconnect);
 
-    chat.otr.sendQueryMsg(); // the user turned on encryption, so let's turn on encryption
-
-    return chat;
+    chat.otr.sendQueryMsg(); // the user wants to turn on encryption, so let's turn on encryption
 };
 
 var connectTab = function(user, ownId, id, tabId, safePort) {
     console.log("connectTab", arguments);
     var chat;
     if (!(id in user.chats)) {
-        chat = initChat(user, ownId, id, tabId, false,
-                        function() {
-                            connectTab(user, ownId, id, tabId, safePort);
-                        });
+        initChat(user, ownId, id, tabId, false,
+                 function() {
+                     connectTab(user, ownId, id, tabId, safePort);
+                 });
         return;
     } else {
         chat = user.chats[id];
@@ -198,16 +239,12 @@ var connectTab = function(user, ownId, id, tabId, safePort) {
         if (data.type === 'send') {
             chat.otr.sendMsg(data.msg);
 
-            // reflect this message one tab just sent
-            // back to all the other tabs
-            for (var tid in chat.tabSafePorts) {
-                if (parseInt(tid) === tabId || !chat.tabSafePorts.hasOwnProperty(tid)) continue;
-
-                chat.tabSafePorts[tid].postMessage({
-                    type: 'recvOwn',
-                    msg: data.msg
-                });
-            }
+            // reflect the message this tab just sent
+            // back to all tabs' safechat boxes for display
+            postToSafePorts(chat, {
+                type: 'recvOwn',
+                msg: data.msg
+            });
         }
     });
 };
@@ -244,7 +281,14 @@ chrome.runtime.onMessage.addListener(function(data) {
             }
         }
 
-    } // else if (data.type === '
+    } else if (data.type === 'regenKey') {
+        // options page is watching for storage change
+        // so we don't need to call them back
+        generate('genKey');
+
+    } else if (data.type === 'regenTokens') {
+        generate('genTokens');
+    }
     console.log(data);
 });
 

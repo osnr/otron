@@ -10,8 +10,8 @@
             "matches": ["*://*.facebook.com/*"],
 
             "css": ["css/fbotr.css"],
-            "js": ["lib/bigint.js", "lib/crypto.js", "lib/eventemitter.js",
-                   "lib/otr.js", "lib/jquery.min.js", "js/shared.js",
+            "js": ["lib/jquery.min.js",
+                   "js/shared.js",
                    "js/fbotr.js"]
         }
     ],
@@ -19,7 +19,8 @@
     "background": {
         "scripts": ["lib/bigint.js", "lib/crypto.js", "lib/eventemitter.js",
                     "lib/otr.js", "js/shared.js",
-                    "js/genkey.js", "js/event.js"],
+                    "lib/identicon.js",
+                    "js/gen.js", "js/event.js"],
         "persistent": false
     },
 
