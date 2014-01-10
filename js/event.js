@@ -143,6 +143,7 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
         });
     });
 
+    var timeout = null;
     chat.otr.on('status', function (state) {
         console.log('status', ownId, id, state);
         switch (state) {
@@ -152,7 +153,8 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
                 status: 'sentQuery'
             });
 
-            setTimeout(function() {
+            if (timeout !== null) clearTimeout(timeout);
+            timeout = setTimeout(function() {
                 setStatus(chat, {
                     type: 'status',
                     status: 'timeout',
@@ -167,7 +169,8 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
                 status: 'akeInit'
             });
 
-            setTimeout(function() {
+            if (timeout !== null) clearTimeout(timeout);
+            timeout = setTimeout(function() {
                 setStatus(chat, {
                     type: 'status',
                     status: 'timeout',
@@ -178,6 +181,8 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
 
         case OTR.CONST.STATUS_AKE_SUCCESS:
             // sucessfully ake'd with buddy
+            if (timeout !== null) clearTimeout(timeout);
+
             var curFingerprint = chat.otr.their_priv_pk.fingerprint();
             var knownFingerprintsKey = makeName(["knownFingerprints", ownId, id]);
 
@@ -299,10 +304,10 @@ var otrSeen = [];
 var otrQueue = {};
 chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
     if (data.type === 'queryChatStatus') {
-        if (ownId in users && id in users[ownId].chats) {
-            sendResponse(true);
+        if (data.ownId in users && data.id in users[data.ownId].chats) {
+            sendResponse({ chatting: true });
         } else {
-            sendResponse(false);
+            sendResponse({ chatting: false });
         }
 
     } else if (data.type === 'unsafeRecvOtr') {

@@ -171,8 +171,8 @@ var Chat = function(chat, ownId) {
                 type: 'queryChatStatus',
                 ownId: ownId,
                 id: id
-            }, function(chatting) {
-                if (chatting) {
+            }, function(data) {
+                if (data.chatting) {
                     encrypted();
                 } else {
                     notEncrypted(true);

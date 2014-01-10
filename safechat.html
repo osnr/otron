@@ -1,12 +1,25 @@
 <html>
     <head>
-        <link rel="stylesheet" type="text/css" href="css/safechat.css"></link>
+        <script src="lib/jquery.min.js"></script>
         <script src="js/safechat.js"></script>
+
+        <link rel="stylesheet" type="text/css" href="css/safechat.css"></link>
     </head>
     <body>
         <div id="messages"></div>
         <textarea id="entry"></textarea>
-        <div id="overlay">
+        <div id="initial" style="display: none" class="overlay loading">
+            <p>Sending request for encryption...</p>
+        </div>
+        <div id="sentQuery" style="display: none" class="overlay loading">
+            <p>Sent request for encryption. Waiting for response...</p>
+        </div>
+        <div id="akeInit" style="display: none" class="overlay loading">
+            <p>Negotating encryption details...</p>
+        </div>
+        <div id="timeout" style="display: none" class="overlay">
+            <p>Operation timed out.</p>
+            <!-- <p><button id="close">End encryption</button></p> -->
         </div>
     </body>
 </html>

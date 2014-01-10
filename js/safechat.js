@@ -1,23 +1,17 @@
 "use strict";
 
-window.onload = function() {
-    var entry = document.getElementById("entry");
-
+$(document).ready(function() {
     // from http://georgepapadakis.me/demo/expanding-textarea.html
-    var autogrow = function(t) {
-        var resize = function(t) {
-            var lines = t.value.split("\n").length;
+    var resize = function(t) {
+        var lines = t.value.split("\n").length;
 
-            t.style.height = (25 + 11.5 * (lines - 1)) + 'px';
-        };
-
-        t.addEventListener('input', function(event) {
-            resize(t);
-        });
+        t.style.height = (25 + 11.5 * (lines - 1)) + 'px';
     };
 
-    autogrow(entry);
-};
+    $("#entry").on('input', function(event) {
+        resize(this);
+    });
+});
 
 window.addEventListener('message', function(event) {
     if (event.data.type !== 'initPackage') return;
@@ -26,49 +20,53 @@ window.addEventListener('message', function(event) {
     var ownId = event.data.ownId;
     var id = event.data.id;
     var profilePhoto = event.data.profilePhoto;
+    if (profilePhoto.substring(0, 5) !== "data:") profilePhoto = "";
     var oldMessages = event.data.messages;
 
-    var overlay = document.getElementById("overlay");
-    overlay.innerHTML = "<p>Sending request for encryption...</p>";
+    $("#initial").show();
     var handleStatus = {
         sentQuery: function(data) {
-            overlay.innerHTML = "<p>Sent request for encryption. Waiting for response...</p>";
+            $(".overlay").hide();
+            $("#sentQuery").show();
         },
         akeInit: function(data) {
-            overlay.innerHTML = "<p>Negotating encryption details...</p>";
+            $(".overlay").hide();
+            $("#akeInit").show();
         },
         akeSuccess: function(data) {
-            overlay.style.display = "none";
+            $(".overlay").hide();
             console.log("akeSuccess", data.fingerprint, data.trust, data.prevFingerprints);
         },
         timeout: function(data) {
-            overlay.innerHTML = "<p>Operation timed out.</p>";
+            $(".overlay").hide();
+            $("#timeout")
+                .show()
+                .find("#close").click(function() {
+                    port.disconnect();
+                });
         }
     };
 
     var displayMsg = function(msg, own, encrypted) {
-        var rowEl = document.createElement("div");
-        rowEl.className = "row";
+        var $row = $('<div class="row"></div>');
 
         if (!own) {
-            var profilePhotoEl = document.createElement("img");
-            profilePhotoEl.className = "profilePhoto";
-            profilePhotoEl.src = profilePhoto;
-            rowEl.appendChild(profilePhotoEl);
+            $('<img class="profilePhoto"></img>')
+                .attr("src", profilePhoto)
+                .appendTo($row);
         }
 
-        var msgEl = document.createElement("div");
-        msgEl.innerText = msg;
-        msgEl.className = "message";
-        if (own) msgEl.className += " own";
-        if (encrypted) msgEl.className += " encrypted";
-        rowEl.appendChild(msgEl);
+        var $msg = $('<div class="message"></div>')
+            .text(msg);
+        if (own) $msg.addClass("own");
+        if (encrypted) $msg.addClass("encrypted");
+        $msg.appendTo($row);
 
-        var msgs = document.getElementById("messages");
-        msgs.appendChild(rowEl);
-        msgs.scrollTop = msgs.scrollHeight;
+        $("#messages")
+            .append($row)
+            .scrollTop($("#messages").prop("scrollHeight"));
 
-        return msgEl;
+        return $msg;
     };
 
     console.log("iframe online between", ownId, " and ", id);

@@ -6,7 +6,7 @@ body {
     font-size: 11px;
 }
 
-#overlay {
+.overlay {
     position: absolute;
     height: 259px;
     width: 260px;
@@ -18,7 +18,8 @@ body {
     opacity: 0.8;
 
     text-align: center;
-
+}
+.loading {
     background-image: url("../img/ajax-loader.gif");
     background-repeat: no-repeat;
     background-position: 50% 50%;
