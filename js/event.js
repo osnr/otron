@@ -1,5 +1,7 @@
 "use strict";
 
+var TIMEOUT = 10000;
+
 var privKey;
 
 (function loadPrivKey() {
@@ -39,6 +41,12 @@ var postToSafePorts = function(chat, data) {
     }
 };
 
+var setStatus = function(chat, status) {
+    console.log("setStatus", chat, status);
+    chat.status = status;
+    postToSafePorts(chat, status);
+};
+
 var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
     if (!instanceTag) {
         var instanceTagKey = makeName(["instanceTag", ownId, id]);
@@ -69,6 +77,8 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
 
             debug: true
         }),
+
+        status: null,
 
         unsafePortOnMessage: function(data) {
             // message from fbotr.js / fb.com
@@ -116,7 +126,7 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
     }
 
     chat.otr.on('ui', function (msg, encrypted) {
-        // display message (decrypted or never-encrypted) to user
+        // display message to user
         postToSafePorts(chat, {
             type: 'recv',
             msg: msg,
@@ -136,6 +146,36 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
     chat.otr.on('status', function (state) {
         console.log('status', ownId, id, state);
         switch (state) {
+        case OTR.CONST.STATUS_SEND_QUERY:
+            setStatus(chat, {
+                type: 'status',
+                status: 'sentQuery'
+            });
+
+            setTimeout(function() {
+                setStatus(chat, {
+                    type: 'status',
+                    status: 'timeout',
+                    prevStatus: 'sentQuery'
+                });
+            }, TIMEOUT);
+            break;
+
+        case OTR.CONST.STATUS_AKE_INIT:
+            setStatus(chat, {
+                type: 'status',
+                status: 'akeInit'
+            });
+
+            setTimeout(function() {
+                setStatus(chat, {
+                    type: 'status',
+                    status: 'timeout',
+                    prevStatus: 'akeInit'
+                });
+            }, TIMEOUT);
+            break;
+
         case OTR.CONST.STATUS_AKE_SUCCESS:
             // sucessfully ake'd with buddy
             var curFingerprint = chat.otr.their_priv_pk.fingerprint();
@@ -173,8 +213,10 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
                     }]);
                 }
 
-                postToSafePorts(chat, {
-                    type: 'akeSuccess',
+                console.log("AKE success");
+                setStatus(chat, {
+                    type: 'status',
+                    status: 'akeSuccess',
 
                     fingerprint: curFingerprint,
                     trust: trust,
@@ -185,9 +227,11 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
 
             break;
         case OTR.CONST.STATUS_END_OTR:
-            postToSafePorts(chat, {
-                type: 'endOtr'
+            setStatus(chat, {
+                type: 'status',
+                status: 'endOtr'
             });
+
             break;
         }
     });
@@ -214,6 +258,8 @@ var connectTab = function(user, ownId, id, tabId, safePort) {
         return;
     } else {
         chat = user.chats[id];
+        // if we're already connected, we'd better inform this tab of it
+        if (chat.status) safePort.postMessage(chat.status);
     }
 
     if (tabId in chat.tabSafePorts) return;
@@ -227,7 +273,7 @@ var connectTab = function(user, ownId, id, tabId, safePort) {
         // we'll also want to destroy the unsafePort for this tab
         // (safePort is from the iframe, so it gets killed on chatbox close
         //  but unsafePort runs to the whole browser tab, so we need to kill it
-        //  ourselves)
+        //  ourselves if the tab is still open)
         if (chat.unsafePortTabId === tabId) {
             chat.unsafePort.disconnect();
             // this doesn't fire for some reason
@@ -252,7 +298,14 @@ var connectTab = function(user, ownId, id, tabId, safePort) {
 var otrSeen = [];
 var otrQueue = {};
 chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
-    if (data.type === 'unsafeRecvOtr') {
+    if (data.type === 'queryChatStatus') {
+        if (ownId in users && id in users[ownId].chats) {
+            sendResponse(true);
+        } else {
+            sendResponse(false);
+        }
+
+    } else if (data.type === 'unsafeRecvOtr') {
         // "random" OTR messages received in unencrypted mode
         // (say, if Alice is talking to Bob and Bob suddenly encrypts
         //  and sends a message)

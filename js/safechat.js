@@ -28,9 +28,22 @@ window.addEventListener('message', function(event) {
     var profilePhoto = event.data.profilePhoto;
     var oldMessages = event.data.messages;
 
-    var akeSuccess = function(fingerprint, trust, prevFingerprints) {
-        document.getElementById("overlay").style.display = "none";
-        console.log("akeSuccess", fingerprint, trust, prevFingerprints);
+    var overlay = document.getElementById("overlay");
+    overlay.innerHTML = "<p>Sending request for encryption...</p>";
+    var handleStatus = {
+        sentQuery: function(data) {
+            overlay.innerHTML = "<p>Sent request for encryption. Waiting for response...</p>";
+        },
+        akeInit: function(data) {
+            overlay.innerHTML = "<p>Negotating encryption details...</p>";
+        },
+        akeSuccess: function(data) {
+            overlay.style.display = "none";
+            console.log("akeSuccess", data.fingerprint, data.trust, data.prevFingerprints);
+        },
+        timeout: function(data) {
+            overlay.innerHTML = "<p>Operation timed out.</p>";
+        }
     };
 
     var displayMsg = function(msg, own, encrypted) {
@@ -65,6 +78,7 @@ window.addEventListener('message', function(event) {
     }
 
     // TODO share makeName from shared.js (these ids are already escaped for "-" anyway, though)
+    // this will alert event.js that we're ready to receive messages, triggering connectTab
     var port = chrome.runtime.connect({ name: "safePort-" + ownId + "-" + id });
 
     document.getElementById("entry").onkeydown = function(e) {
@@ -81,8 +95,8 @@ window.addEventListener('message', function(event) {
 
     port.onMessage.addListener(function(data) {
         console.log("iframe got", data);
-        if (data.type === 'akeSuccess') {
-            akeSuccess(data.fingerprint, data.trust, data.prevFingerprints);
+        if (data.type === 'status') {
+            handleStatus[data.status](data);
         } else if (data.type === 'recv') {
             displayMsg(data.msg, false, data.encrypted);
         } else if (data.type === 'recvOwn') {

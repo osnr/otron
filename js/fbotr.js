@@ -77,12 +77,18 @@ var removeReceiveListener = function(fbid) {
 };
 
 var initChatInterception = function() {
-    runInPageContext(function() {
+    runInPageContext(function otrIntercept() {
         /* intercept incoming messages and forward to us so we can look for ?OTR: */
-        var ctmv = require("ChatTabMessagesView").prototype;
-        var anm = ctmv._appendNewMessages;
+        var ctmv = require("ChatTabMessagesView");
+        if (!ctmv) {
+            setTimeout(otrIntercept, 100);
+            return;
+        }
 
-        ctmv._appendNewMessages = function(messages) {
+        var ctmvp = ctmv.prototype;
+        var anm = ctmvp._appendNewMessages;
+
+        ctmvp._appendNewMessages = function(messages) {
             messages.forEach(function(message) {
                 window.postMessage({
                     type: 'unsafeRecv',
@@ -97,6 +103,10 @@ var initChatInterception = function() {
 
         /* whitespace-tag outgoing FB messages (doesn't include our OTRed ones) */
         var msd = require("MercuryServerDispatcher");
+        if (!msd) {
+            setTimeout(otrIntercept, 100);
+            return;
+        }
         var ts = msd.trySend;
 
         msd.trySend = function(uri, data) {
@@ -104,6 +114,7 @@ var initChatInterception = function() {
                 "message_batch" in data) {
 
                 for (var i = 0; i < data.message_batch.length; i++) {
+                    /* TODO only send at beginning of chat */
                     /* append constant WHITESPACE_TAG */
                     data.message_batch[i].body +=
                         "\x20\x09\x20\x20\x09\x09\x09\x09" +
@@ -156,7 +167,18 @@ var Chat = function(chat, ownId) {
         if (chrome.runtime.lastError || $.isEmptyObject(items)) {
             notEncrypted(true);
         } else {
-            encrypted();
+            chrome.runtime.sendMessage({
+                type: 'queryChatStatus',
+                ownId: ownId,
+                id: id
+            }, function(chatting) {
+                if (chatting) {
+                    encrypted();
+                } else {
+                    notEncrypted(true);
+                    supports(function(name) { return "Resume encryption?"; }, true);
+                }
+            });
         }
     });
 
@@ -165,9 +187,9 @@ var Chat = function(chat, ownId) {
             if (key !== chatIsEncryptKey(ownId, id)) continue;
 
             var ch = changes[key];
-            if (ch.newValue && !('oldValue' in ch)) {
+            if (ch.newValue && !isEncrypted) {
                 encrypted();
-            } else if (!('newValue' in ch) && ch.oldValue) {
+            } else if (!('newValue' in ch) && isEncrypted) {
                 notEncrypted();
             }
 
@@ -181,28 +203,36 @@ var Chat = function(chat, ownId) {
     // which is what actually activates encryption
     // (for all tabs at once, not just this one)
     var enableEncryption = function() {
-        storageSet(chatIsEncryptKey(ownId, id), true);
+        storageSet(chatIsEncryptKey(ownId, id), 1 + Math.random());
     };
 
     var disableEncryption = function() {
         chrome.storage.local.remove(chatIsEncryptKey(ownId, id));
     };
 
-    var supports = function(prompt) {
-        $(chat).find(".fbNubFlyoutTitlebar").after(
-            $('<div class="otr-header"></div>')
-                .click(function() {
-                    $(chat).find(".otr-header").remove();
-                })
-                .append($('<span class="otr-supports"></span>')
-                        .text(name.split(" ")[0] + " " + prompt + "."))
-                .append($('<button class="otr-button otr-encrypt">Encrypt</button>')
+    var supports = function(prompt, stop) {
+        var $header = $('<div class="otr-header"></div>')
+            .click(function() {
+                $(chat).find(".otr-header").remove();
+            })
+            .append($('<span class="otr-supports"></span>')
+                    .text(prompt(name.split(" ")[0])))
+            .append($('<div class="otr-header-buttons"></div>')
+                    .append($('<button class="otr-button">Encrypt</button>')
+                            .click(function() {
+                                enableEncryption();
+                                return false;
+                            })))
+            .insertAfter($(chat).find(".fbNubFlyoutTitlebar"));
+
+        if (stop) {
+            $header.find(".otr-header-buttons")
+                .append($('<button class="otr-button">Stop</button>')
                         .click(function() {
                             $(chat).find(".otr-header").remove();
-                            enableEncryption();
-                            return false;
-                        }))
-        );
+                            disableEncryption();
+                        }));
+        }
     };
 
     // set up unencrypted state
@@ -223,13 +253,13 @@ var Chat = function(chat, ownId) {
                 if (tagRest.indexOf("\x20\x20\x09\x09\x20\x20\x09\x20") !== -1 || // supports OTRv2
                     tagRest.indexOf("\x20\x20\x09\x09\x20\x20\x09\x09") !== -1) { // supports OTRv3
                     
-                    supports("can chat securely");
+                    supports(function(name) { return name + " can chat securely."; });
                 }
 
             } else if (data.msg.substring(0, 4) === "?OTR") {
                 if (data.msg.substring(0, 5) === "?OTR:") {
                     // weird, we got an encrypted message we weren't expecting
-                    supports("sent an encrypted message");
+                    supports(function(name) { return name + " encrypted a message."; });
                     return;
                 }
 
@@ -277,6 +307,7 @@ var Chat = function(chat, ownId) {
         if (isEncrypted) return;
         isEncrypted = true;
 
+        $(chat).find(".otr-header").remove();
         $(chat).find(".otr-unlocked").remove();
         removeReceiveListener(id); // no need to watch for OTR messages
 
@@ -395,6 +426,8 @@ function start(target, ownId) {
 
     var chats = [];
     var addChat = function(el, ownId) {
+        if (chats.filter(function(c) { return c.el === el; }).length > 0) return;
+ 
         var chat = new Chat(el, ownId);
         if (chat) chats.push(chat);
     };
@@ -430,7 +463,9 @@ function start(target, ownId) {
 
     observer.observe(target, config);
 
-    $(".fbDockChatTabFlyout").each(function(i, el) { addChat(el, ownId); });
+    $(".fbDockChatTabFlyout").each(function(i, el) {
+        addChat(el, ownId);
+    });
 };
 
 $(document).ready(function() { // TODO do we need to wait till document.ready?
