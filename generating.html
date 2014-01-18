@@ -1,6 +1,6 @@
 <html>
     <head>
-        <title>OTR for Facebook Chat</title>
+        <title>OTRon key generation</title>
         <script src="lib/jquery.min.js"></script>
         <script src="lib/identicon.js"></script>
         <script src="js/generating.js"></script>
@@ -15,11 +15,11 @@
                 text-decoration: none;
             }
 
-            #fingerprint, #tokens canvas {
+            #fingerprint, #token canvas {
                 text-align: center;
             }
 
-            .genBoth, .genKey, .genTokens {
+            .genBoth, .genKey, .genToken {
                 display: none;
             }
         </style>
@@ -27,7 +27,7 @@
     <body>
         <div style="display: none" id="generating">
             <div class="genBoth">
-                <p>Generating DSA encryption key pair and security tokens.</p>
+                <p>Generating DSA encryption key pair and security token.</p>
                 <p>This will only happen once.</p>
                 <p>Please wait a few seconds...</p>
             </div>
@@ -35,28 +35,25 @@
                 <p>Generating DSA encryption key pair.</p>
                 <p>Please wait a few seconds...</p>
             </div>
-            <div class="genTokens">
-                <p>Generating security tokens.</p>
+            <div class="genToken">
+                <p>Generating security token.</p>
                 <p>Please wait...</p>
             </div>
         </div>
         <div style="display: none" id="done">
             <div class="genKey genBoth">
                 <p>You're ready to chat.</p>
-                <p>
-                    OTR for Facebook Chat has generated a public and private key for you.
-                    <a href="options.html#keys" class="learn-more" target="_blank">(Learn more about your public and private key pair.)</a>
-                </p>
+                <p>OTRon has generated a public and private key for you.</p>
+                <p><a href="options.html#keys" class="learn-more" target="_blank">(Learn more about your public and private key pair.)</a></p>
                 <p>Share this public key fingerprint with your friends in person, so they know they're chatting with the real you:</p>
                 <p id="fingerprint"></p>
             </div>
             <hr class="genBoth"></hr>
-            <div class="genTokens genBoth">
+            <div class="genToken genBoth">
                 <p>For additional security, remember this icon.</p>
                 <img id="token-image" width="128" height="128"></img>
                 <p>This is your personal <em>security token</em>. It will appear in the background of any authentic encrypted Facebook chat.</p>
-                <p>You should also remember <span id="token-color">this color</span>; a different token of this color will morph in your address bar as you type a new chat message, confirming that it's being entered securely.</p>
-                <p><a href="options.html#security" class="learn-more" target="_blank">(Learn more about security tokens.)</a></p>
+                <p><a href="options.html#security" class="learn-more" target="_blank">(Learn more about this security token.)</a></p>
             </div>
         </div>
     </body>

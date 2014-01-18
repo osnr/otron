@@ -25,11 +25,63 @@ body {
     background-position: 50% 50%;
 }
 
+button {
+    background-color: #5b74a8;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #29447e #29447e #1a356e;
+    color: #fff;
+    -webkit-box-shadow: 0 1px 0 rgba(0, 0, 0, .1);
+    font-weight: bold;
+    line-height: 20px;
+    text-align: center;
+    vertical-align: middle;
+    padding: 0 8px;
+    cursor: pointer;
+}
+button:active {
+    background: #4f6aa3;
+    border-bottom-color: #29447e;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .2);
+}
+
+.trust {
+    position: absolute;
+    top: 0px;
+    height: 28px;
+    width: 100%;
+
+    border-bottom: 1px solid rgba(0, 0, 0, .1);
+}
+.trust:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 30px;
+    background-color: rgba(242, 242, 242, 0.8);
+    pointer-events: none;
+}
+
+.trust .fingerprint {
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    border-bottom: 1px gray dotted;
+}
+
+.verify {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+}
+
 #messages {
     position: absolute;
-    top: 0;
+    top: 29px;
     bottom: 25px;
 
+    padding-top: 4px;
     width: 100%;
 
     background-color: rgb(237, 239, 244);
@@ -73,8 +125,28 @@ body {
 
     float: right;
 }
-.message.encrypted {
-    background-color: green;
+
+.message.error {
+    margin-top: 0;
+    margin-left: 0;
+    margin-right: 0;
+
+    padding-top: 9px;
+    padding-bottom: 9px;
+
+    position: absolute;
+    left: 0;
+    right: 0;
+    max-width: none;
+    height: 25px;
+
+    background: #ddd;
+    -webkit-border-radius: 0;
+    -webkit-box-shadow: none;
+    border: none;
+}
+.message:not(.encrypted) {
+    border: 1px solid red;
 }
 
 #entry {

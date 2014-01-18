@@ -1,0 +1,27 @@
+<html>
+    <head>
+        <script src="lib/jquery.min.js"></script>
+        <script src="js/authenticate.js"></script>
+
+        <title>OTRon identity authentication</title>
+    </head>
+
+    <body>
+        <p>Encryption alone protects you against someone passively reading your messages, but it doesn't protect you against someone actively impersonating the person you want to talk to. You need to <em>authenticate</em> the identity of your friend.</p>
+        <p>OTRon provides two ways to do this authentication: public key fingerprint verification, and keyphrase verification (also known as <em>the socialist millionaire protocol</em>). You only need to do one.</p>
+        <p>(Learn more about man-in-the-middle attacks.)</p>
+        <div>
+            <h3>Fingerprint verification</h3>
+            <p>Get your friend's public key fingerprint some other way, where you know it's them talking to you.</p>
+            <p>If you're talking to your friend now, share <em>your</em> fingerprint with them, so they can authenticate you on their side:</p>
+            <p id="own-fingerprint"></p>
+            <p>(Options page.)</p>
+            <p>Enter your friend's fingerprint here, and OTRon will match it against the fingerprint of the person you're talking to.</p>
+            <div contenteditable id="chat-fingerprint"></div>
+        </div>
+        <div>
+            <h3>Secret phrase verification</h3>
+            <p>You can also use the <em>socialist millionaire protocol</em>, which confirms the identities of you and your friend to each other by having you both enter in a shared secret passphrase. This passphrase should not be known to anyone who might be intercepting your conversation.</p>
+        </div>
+    </body>
+</html>

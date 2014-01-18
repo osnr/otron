@@ -7,7 +7,7 @@ function makePopup(mode, callback) {
         h = 430;
     } else if (mode === 'genKey') {
         h = 150;
-    } else if (mode === 'genTokens') {
+    } else if (mode === 'genToken') {
         h = 330;
     }
     chrome.windows.create({
@@ -25,7 +25,7 @@ function makePopup(mode, callback) {
 function generate(mode, callback) {
     makePopup(mode, function(popup) {
         var privKey;
-        var tokens;
+        var token;
 
         // bookkeeping (fake "modal window", cleanup)
         var keepFocus = function(newWid) {
@@ -43,7 +43,7 @@ function generate(mode, callback) {
                 chrome.windows.onRemoved.removeListener(removed);
 
                 if (((mode === 'genKey' || mode === 'genBoth') && !privKey) ||
-                    ((mode === 'genTokens' || mode === 'genBoth') && !tokens)) {
+                    ((mode === 'genToken' || mode === 'genBoth') && !token)) {
 
                     // user prematurely closed the popup! how rude
                     // TODO let's spawn a new one!
@@ -66,27 +66,12 @@ function generate(mode, callback) {
                 });
             }
 
-            if (mode === 'genTokens' || mode === 'genBoth') {
-                var tokenNum = new Uint32Array(1);
-                window.crypto.getRandomValues(tokenNum);
-
-                tokenNum = tokenNum[0];
-
-                var canvas = document.createElement("canvas");
-                canvas.width = 128;
-                canvas.height = 128;
-                new Identicon(canvas, tokenNum, 128);
-
-                var ctx = canvas.getContext("2d");
-                var cData = ctx.getImageData(0, 0, 128, 128);
-
-                tokens = {
-                    color: "rgba(" + getAverageColor(cData).join(",") + ")",
-                    image: canvas.toDataURL("image/png")
-                };
+            if (mode === 'genToken' || mode === 'genBoth') {
+                var canvas = randIconCanvas(128);
+                token = canvas.toDataURL("image/png")
 
                 chrome.storage.local.set({
-                    tokens: tokens
+                    token: token
                 });
             }
 
@@ -97,18 +82,32 @@ function generate(mode, callback) {
                     chrome.tabs.sendMessage(tabs[0].id, {
                         type: 'doneGen',
                         fingerprint: privKey ? privKey.fingerprint() : null,
-                        tokens: tokens
+                        token: token
                     });
                 });
 
             if (callback) callback({
                 privKey: privKey,
-                tokens: tokens
+                token: token
             });
         };
 
         chrome.runtime.onMessage.addListener(loadedPopup);
     });
+}
+
+function randIconCanvas(size) {
+    var tokenNum = new Uint32Array(1);
+    window.crypto.getRandomValues(tokenNum);
+
+    tokenNum = tokenNum[0];
+
+    var canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    new Identicon(canvas, tokenNum, size);
+
+    return canvas;
 }
 
 var getAverageColor = (function() { // from https://gist.github.com/snorpey/5990253

@@ -28,6 +28,9 @@ var users = {};
 //                 unsafePortTabId: TabId
 //                 tabSafePorts: [TabId]
 //                 otr: OTR
+//                 status: StatusMessageData
+//                 serverTypingState: Boolean
+//
 //                 unsafePortOnMessage: function
 //                 unsafePortOnDisconnect: function
 //             }
@@ -45,6 +48,41 @@ var setStatus = function(chat, status) {
     console.log("setStatus", chat, status);
     chat.status = status;
     postToSafePorts(chat, status);
+};
+
+var typing = function(chat) {
+    var canvas = randIconCanvas(19);
+    var imData = canvas.getContext("2d").getImageData(0, 0, 19, 19);
+
+    for (var tid in chat.tabSafePorts) {
+        tid = parseInt(tid);
+
+        chrome.pageAction.show(tid);
+        chrome.pageAction.setIcon({
+            tabId: tid,
+            imageData: imData
+        });
+    }
+
+    if (!chat.serverTypingState) {
+        chat.serverTypingState = true;
+
+        // TODO tell server we're typing
+        
+    }
+};
+
+var notTyping = function(chat, justSent) {
+    for (var tid in chat.tabSafePorts) {
+        tid = parseInt(tid);
+        chrome.pageAction.hide(tid);
+    }
+
+    chat.serverTypingState = false;
+    if (!justSent) {
+        // TODO tell server we're not typing anymore
+        
+    }
 };
 
 var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
@@ -78,6 +116,7 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
             debug: true
         }),
 
+        serverTypingState: false,
         status: null,
 
         unsafePortOnMessage: function(data) {
@@ -107,6 +146,7 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
 
             // OK, this chat is gone from the browser; time to wrap up
             // destroys keys too
+            console.log("destroying chat", ownId, id);
             delete user.chats[id];
 
             if (Object.keys(user.chats).length === 0) {
@@ -244,6 +284,10 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
     chat.unsafePort.onMessage.addListener(chat.unsafePortOnMessage);
 
     chat.otr.on('error', function (err) {
+        postToSafePorts(chat, {
+            type: 'error',
+            msg: err
+        });
         console.log("error occurred: " + err);
     });
 
@@ -296,6 +340,29 @@ var connectTab = function(user, ownId, id, tabId, safePort) {
                 type: 'recvOwn',
                 msg: data.msg
             });
+
+            notTyping(chat, true);
+
+        } else if (data.type === 'typing') {
+            typing(chat);
+        } else if (data.type === 'clear') {
+            notTyping(chat);
+
+        } else if (data.type === 'authenticate') {
+            var w = 300, h = 300;
+            chrome.windows.create({
+                url: chrome.extension.getURL("authenticate.html"),
+                type: "popup",
+                focused: true,
+
+                width: w,
+                height: h,
+                left: (screen.width / 2) - (w / 2),
+                top: (screen.height / 2) - (h / 2)
+
+            }, function(popup) {
+                console.log("made auth");
+            });
         }
     });
 };
@@ -344,8 +411,13 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
         // so we don't need to call them back
         generate('genKey');
 
-    } else if (data.type === 'regenTokens') {
-        generate('genTokens');
+    } else if (data.type === 'regenToken') {
+        generate('genToken');
+
+    } else if (data.type === 'initSafeChat') {
+        // forward this back to the sender tab,
+        // so that the safe chat iframe can pick it up
+        chrome.tabs.sendMessage(sender.tab.id, data);
     }
     console.log(data);
 });

@@ -1,5 +1,7 @@
 "use strict";
 
+var uuid = window.location.search.substr(1);
+
 $(document).ready(function() {
     // from http://georgepapadakis.me/demo/expanding-textarea.html
     var resize = function(t) {
@@ -13,15 +15,22 @@ $(document).ready(function() {
     });
 });
 
-window.addEventListener('message', function(event) {
-    if (event.data.type !== 'initPackage') return;
-    console.log(event.data);
+chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
+    if (data.type !== 'initSafeChat' ||
+        data.uuid !== uuid) return;
+    chrome.runtime.onMessage.removeListener(onInitSafeChat);
 
-    var ownId = event.data.ownId;
-    var id = event.data.id;
-    var profilePhoto = event.data.profilePhoto;
+    console.log(data);
+
+    var ownId = data.ownId;
+    var id = data.id;
+
+    var token = data.token;
+    if (token.substring(0, 5) !== "data:") token = "about:blank";
+    var profilePhoto = data.profilePhoto;
     if (profilePhoto.substring(0, 5) !== "data:") profilePhoto = "";
-    var oldMessages = event.data.messages;
+
+    var oldMessages = data.messages;
 
     $("#initial").show();
     var handleStatus = {
@@ -35,6 +44,13 @@ window.addEventListener('message', function(event) {
         },
         akeSuccess: function(data) {
             $(".overlay").hide();
+            $(".trust").css({
+                backgroundImage: 'url("' + token + '")',
+                backgroundSize: "contain"
+            });
+            if (data.trust === 'new') {
+                $("#new").show();
+            }
             console.log("akeSuccess", data.fingerprint, data.trust, data.prevFingerprints);
         },
         timeout: function(data) {
@@ -47,7 +63,13 @@ window.addEventListener('message', function(event) {
         }
     };
 
-    var displayMsg = function(msg, own, encrypted) {
+    $(".verify").click(function() {
+        port.sendMessage({
+            type: 'authenticate'
+        });
+    });
+
+    var displayMsg = function(msg, own, encrypted, error) {
         var $row = $('<div class="row"></div>');
 
         if (!own) {
@@ -60,6 +82,7 @@ window.addEventListener('message', function(event) {
             .text(msg);
         if (own) $msg.addClass("own");
         if (encrypted) $msg.addClass("encrypted");
+        if (error) $msg.addClass("error");
         $msg.appendTo($row);
 
         $("#messages")
@@ -79,22 +102,31 @@ window.addEventListener('message', function(event) {
     // this will alert event.js that we're ready to receive messages, triggering connectTab
     var port = chrome.runtime.connect({ name: "safePort-" + ownId + "-" + id });
 
-    document.getElementById("entry").onkeydown = function(e) {
+    var $entry = $("#entry");
+    $entry.keydown(function(e) {
         if (e.keyCode === 13 && !e.shiftKey) {
-            var msg = entry.value;
+            var msg = $entry.val();
 
             port.postMessage({ type: "send",
                                msg: msg });
 
-            entry.value = "";
+            $entry.val("");
             return false;
+
+        } else if ($entry.val() === "") {
+            port.postMessage({ type: "clear" });
+
+        } else {
+            port.postMessage({ type: "typing" });
         }
-    };
+    });
 
     port.onMessage.addListener(function(data) {
         console.log("iframe got", data);
         if (data.type === 'status') {
             handleStatus[data.status](data);
+        } else if (data.type === 'error') {
+            displayMsg(data.msg, false, false, true);
         } else if (data.type === 'recv') {
             displayMsg(data.msg, false, data.encrypted);
         } else if (data.type === 'recvOwn') {

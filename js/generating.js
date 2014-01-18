@@ -18,9 +18,8 @@ $(document).ready(function() {
                 data.fingerprint.match(/(.{1,8})/g).join(' '));
         }
 
-        if (mode === 'genTokens' || mode === 'genBoth') {
-            $("#token-image").attr("src", data.tokens.image);
-            $("#token-color").css("background-color", data.tokens.color);
+        if (mode === 'genToken' || mode === 'genBoth') {
+            $("#token-image").attr("src", data.token);
         }
     });
 

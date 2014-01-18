@@ -66,11 +66,10 @@ var loadData = function() {
                                       chrome.storage.local.remove(k);
                                   });
                 }
-            } else if (k === 'tokens') {
-                var tokens = data[k];
+            } else if (k === 'token') {
+                var token = data[k];
 
-                $('#security-token').attr('src', tokens.image);
-                $('#security-color').css('background-color', tokens.color);
+                $('#security-token').attr('src', token);
             }
         }
     });
@@ -117,7 +116,7 @@ $(function() {
         chrome.runtime.sendMessage({ type: 'regenKey' });
     });
 
-    $('#regenerate-tokens').click(function() {
-        chrome.runtime.sendMessage({ type: 'regenTokens' });
+    $('#regenerate-token').click(function() {
+        chrome.runtime.sendMessage({ type: 'regenToken' });
     });
 });

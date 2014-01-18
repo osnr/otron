@@ -109,6 +109,12 @@ var initChatInterception = function() {
         }
         var ts = msd.trySend;
 
+        var ps = require("PresenceStatus");
+        if (!ps) {
+            setTimeout(otrIntercept, 100);
+            return;
+        }
+
         msd.trySend = function(uri, data) {
             if (uri === "/ajax/mercury/send_messages.php" &&
                 "message_batch" in data) {
@@ -163,8 +169,11 @@ var Chat = function(chat, ownId) {
 
     console.log("coverin", chat, ownId, id);
 
-    chrome.storage.local.get(chatIsEncryptKey(ownId, id), function(items) {
-        if (chrome.runtime.lastError || $.isEmptyObject(items)) {
+    var token;
+    chrome.storage.local.get(["token", chatIsEncryptKey(ownId, id)], function(items) {
+        token = items.token;
+
+        if (!(chatIsEncryptKey(ownId, id) in items)) {
             notEncrypted(true);
         } else {
             chrome.runtime.sendMessage({
@@ -319,9 +328,10 @@ var Chat = function(chat, ownId) {
     };
 
     var encryptChat = function() {
+        var uuid = guid(); // used to target init message sent via Chrome extn. messaging
         var $safeChat = $('<iframe class="safe-chat" src="' +
                           chrome.extension.getURL("safechat.html") +
-                          '"></iframe>');
+                          '?' + uuid + '"></iframe>');
         $(chat)
             .find(".addToThread").hide().end()
             .find(".fbNubFlyoutBody").hide().end()
@@ -338,7 +348,9 @@ var Chat = function(chat, ownId) {
             // send the iframe a safe package
             // of information about this chat
             var data = {
-                type: 'initPackage',
+                type: 'initSafeChat',
+                uuid: uuid,
+                token: token,
                 ownId: ownId,
                 id: id,
                 messages: $(chat).find(".fbChatConvItem .messages > div > span > span").map(
@@ -374,7 +386,7 @@ var Chat = function(chat, ownId) {
 
                     data.profilePhoto = canvas.toDataURL();
 
-                    $safeChat[0].contentWindow.postMessage(data, '*');
+                    chrome.runtime.sendMessage(data);
                 });
         });
     };

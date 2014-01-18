@@ -4,7 +4,7 @@
         <script src="lib/jquery.min.js"></script>
         <script src="js/options.js"></script>
 
-        <title>OTR for Facebook Chat Options</title>
+        <title>OTRon Options</title>
 
         <style>
             .fingerprint-view > dl {
@@ -23,7 +23,7 @@
     <body class="chrome-bootstrap">
         <div class="frame">
             <div class="navigation">
-                <h1><a href="#">OTR for FB</a></h1>
+                <h1><a href="#">OTRon</a></h1>
 
                 <ul class="menu">
                     <li class="selected"><a href="#chat">Chat</a></li>
@@ -39,7 +39,7 @@
                     <div class="content">
                         <!-- <section> -->
                         <!--     <h3>Whitespace tagging</h3> -->
-                        <!--     By default, OTR for Facebook Chat tags some messages you send to your friends with a pattern of spaces, letting them know that you're ready to encrypt. This pattern is usually invisible. -->
+                        <!--     By default, OTRon tags some messages you send to your friends with a pattern of spaces, letting them know that you're ready to encrypt. This pattern is usually invisible. -->
                         <!--     <p> -->
                         <!--         <label> -->
                         <!--             <input type="checkbox"> -->
@@ -68,7 +68,7 @@
 
                         <h2>Friends' keys</h2>
                         <p>The public key fingerprints of friends with whom you've used OTR are listed here.<p>
-                        <p>When you speak with a friend some other way, especially in person, you can compare the fingerprint in their OTR for Facebook options with the one listed here. If they don't match, either your friend has changed keys, or someone has been impersonating them.</p>
+                        <p>When you speak with a friend some other way, especially in person, you can compare the fingerprint in their OTRon options with the one listed here. If they don't match, either your friend has changed keys, or someone has been impersonating them.</p>
 
                         <div id="key-list"></div>
                     </div>
@@ -88,17 +88,17 @@
                     <div class="content">
                         <section>
                             <h3>Security token</h3>
-                            <p>This security token watermark sits underneath all messages OTR for Facebook Chat decrypts. If you don't see this token below a chat bubble, it may have been tampered with. (It may just be unencrypted.)</p>
+                            <p>This security token watermark sits underneath all messages OTRon decrypts. If you don't see this token below a chat bubble, it may have been tampered with. (It may just be unencrypted.)</p>
                             <img id="security-token"></img>
                         </section>
                         <section>
                             <h3>Secure input verification</h3>
-                            <p>This color was generated alongside your security token: <span id="security-color">color</span>. A small symbol of this color, sitting on the right side of the input field, should update as you type in an encrypted message. If the symbol is the wrong color or isn't updating while you compose your message, your message has gone somewhere else, possibly to an attacker.</p>
+                            <p>A small symbol, sitting on the right side of the address bar, should update as you type in an encrypted message. If the symbol isn't updating while you compose your message, your message is being intercepted while you type, possibly by an attacker.</p>
                         </section>
                         <section>
                             <h3>Regenerate</h3>
-                            <p>If someone sees your tokens, they might copy them down and try to fool you into entering input somewhere unsafe.</p>
-                            <button id="regenerate-tokens">Regenerate</button>
+                            <p>If someone sees your token, they might copy it down and try to fool you into entering input somewhere unsafe.</p>
+                            <button id="regenerate-token">Regenerate</button>
                         </section>
                     </div>
                 </div>

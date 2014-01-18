@@ -6,6 +6,17 @@
         <link rel="stylesheet" type="text/css" href="css/safechat.css"></link>
     </head>
     <body>
+        <div id="new" style="display: none" class="trust">
+            <span class="fingerprint">Identity new and untrusted.</span>
+            <button class="verify">Verify...</button>
+        </div>
+        <div id="unverified" style="display: none" class="trust">
+            <span class="fingerprint">Identity not trusted.</span>
+            <button class="verify">Verify...</button>
+        </div>
+        <div id="verified" style="display: none" class="trust">
+            <span class="fingerprint">Verified identity.</span>
+        </div>
         <div id="messages"></div>
         <textarea id="entry"></textarea>
         <div id="initial" style="display: none" class="overlay loading">
