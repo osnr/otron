@@ -14,7 +14,7 @@ $(document).ready(function() {
         $("#done").show();
 
         if (mode === 'genKey' || mode === 'genBoth') {
-            $("#fingerprint").text(
+            $(".fingerprint").text(
                 data.fingerprint.match(/(.{1,8})/g).join(' '));
         }
 

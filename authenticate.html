@@ -1,27 +1,97 @@
 <html>
     <head>
         <script src="lib/jquery.min.js"></script>
+        <script src="js/shared.js"></script>
         <script src="js/authenticate.js"></script>
+
+        <link rel="stylesheet" type="text/css" href="css/popup.css"></link>
+        <style>
+            #chat-fingerprint {
+                border: 1px solid black;
+            }
+            #chat-fingerprint.done {
+                border: 1px solid green;
+            }
+            .correct {
+                color: green;
+            }
+            .incorrect {
+                color: red;
+            }
+        </style>
 
         <title>OTRon identity authentication</title>
     </head>
 
     <body>
-        <p>Encryption alone protects you against someone passively reading your messages, but it doesn't protect you against someone actively impersonating the person you want to talk to. You need to <em>authenticate</em> the identity of your friend.</p>
-        <p>OTRon provides two ways to do this authentication: public key fingerprint verification, and keyphrase verification (also known as <em>the socialist millionaire protocol</em>). You only need to do one.</p>
-        <p>(Learn more about man-in-the-middle attacks.)</p>
-        <div>
-            <h3>Fingerprint verification</h3>
-            <p>Get your friend's public key fingerprint some other way, where you know it's them talking to you.</p>
-            <p>If you're talking to your friend now, share <em>your</em> fingerprint with them, so they can authenticate you on their side:</p>
-            <p id="own-fingerprint"></p>
-            <p>(Options page.)</p>
-            <p>Enter your friend's fingerprint here, and OTRon will match it against the fingerprint of the person you're talking to.</p>
-            <div contenteditable id="chat-fingerprint"></div>
+        <div class="screen" id="start">
+            <p>Encryption protects you against an attacker listening in on your messages, but it doesn't protect you against an attacker who impersonates the person you want to talk to. You should <em>authenticate</em> your friend's identity, so you know they are who they say they are.</p>
+            <p>OTRon provides two ways to perform this authentication. You'll only need to do one. (?)</p>
+            <p>(Learn more about "man-in-the-middle" attacks.)</p>
+            <div>
+                <h3>Fingerprint authentication</h3>
+                <p>You need your friend's <em>public key fingerprint</em> to do fingerprint authentication. Get it from them some other way (outside this chat), so you know you're really getting the fingerprint from them.</p>
+                <p>If you're communicating with your friend now (possibly over video chat, or in person), share <em>your</em> fingerprint with them, so they can likewise authenticate you on their side:</p>
+                <p class="own-fingerprint"></p>
+                <p><button id="start-fingerprint">Start fingerprint authentication</button></p>
+            </div>
+            <div>
+                <h3>Secret phrase authentication</h3>
+                <p>Alternatively, if you and your friend already have some <em>shared secret</em> that no impersonator could come up with on the spot, you can authenticate each other with that.</p>
+                <p>(This uses the <em>socialist millionaire protocol</em>, which confirms the identities of you and your friend to each other when you both enter in a shared secret passphrase. Don't share this phrase over your chat! Only type it in during authentication; otherwise, an impersonator could just read it out of the chat.)</p>
+                <p><button id="start-smp">Start secret phrase authentication</button></p>
+            </div>
         </div>
-        <div>
-            <h3>Secret phrase verification</h3>
-            <p>You can also use the <em>socialist millionaire protocol</em>, which confirms the identities of you and your friend to each other by having you both enter in a shared secret passphrase. This passphrase should not be known to anyone who might be intercepting your conversation.</p>
+        <div style="display: none" class="screen" id="auth-fingerprint">
+            <h3>Fingerprint authentication</h3>
+            <p>If you're communicating with your friend now (possibly over video chat, or in person), share <em>your</em> fingerprint with them, so they can likewise authenticate you on their side:</p>
+            <p class="own-fingerprint"></p>
+            <p>Enter your friend's trusted fingerprint here, and OTRon will match it against the fingerprint of the person you're talking to.</p>
+            <div contenteditable spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" id="chat-fingerprint"></div>
+            <p><button disabled="disabled" id="submit-fingerprint">Authenticate</button></p>
+        </div>
+        <div style="display: none" class="screen" id="trust-fingerprint">
+            <h3>Fingerprint authentication</h3>
+            <p>Done!</p>
+        </div>
+        <div style="display: none" class="screen" id="auth-smp">
+            <h3>Secret phrase authentication</h3>
+            <p>You can enter an optional prompt.</p>
+            <p><input id="prompt" type="text"></input></p>
+            <p>What's the secret phrase you want your friend to type in when prompted?</p>
+            <p><input id="secret" type="text"></input></p>
+            <p><button id="submit-smp">Authenticate</button></p>
+        </div>
+        <div style="display: none" class="screen" id="auth-smp-response">
+            <h3>Secret phrase authentication</h3>
+            <p>Your friend <span class="friend-name"></span> has requested that you perform secret phrase authentication.</p>
+            <div id="response-prompt">
+                <p>They've given you a prompt:</p>
+                <p id="response-prompt-prompt"></p>
+            </div>
+            <p>Enter the shared secret phrase:</p>
+            <p><input id="response-secret" type="text"></input></p>
+            <p><button id="submit-smp-response">Authenticate</button></p>
+        </div>
+        <div style="display: none" class="screen" id="init-smp">
+            <h3>Secret phrase authentication</h3>
+            <p>Waiting for response.</p>
+        </div>
+        <div style="display: none" class="screen" id="trust-smp">
+            <h3>Secret phrase authentication</h3>
+            <p>Done!</p>
+        </div>
+        <div style="display: none" class="screen" id="fail-smp">
+            <h3>Secret phrase authentication</h3>
+            <p>Your friend <span class="friend-name"></span> entered the wrong phrase.</p>
+        </div>
+        <div style="display: none" class="screen" id="fail-smp-response">
+            <h3>Secret phrase authentication</h3>
+            <p>You entered the wrong phrase.</p>
+        </div>
+        <div style="display: none" class="screen" id="abort-smp">
+            <h3>Secret phrase authentication</h3>
+            <p>Failed!</p>
         </div>
     </body>
 </html>

@@ -59,15 +59,31 @@ button:active {
     left: 0;
     width: 100%;
     height: 30px;
-    background-color: rgba(242, 242, 242, 0.8);
+    background-color: rgba(242, 242, 242, 0.9);
     pointer-events: none;
 }
 
+.trust .icon {
+    position: absolute;
+    top: 9px;
+    left: 6px;
+    width: 9px;
+    height: 9px;
+}
 .trust .fingerprint {
     position: absolute;
-    left: 6px;
+    left: 20px;
     top: 6px;
     border-bottom: 1px gray dotted;
+}
+
+#new .fingerprint, #seen .fingerprint {
+    color: #7F6C00;
+    border-color: #7F6C00;
+}
+#unseen .fingerprint {
+    color: red;
+    border-color: red;
 }
 
 .verify {

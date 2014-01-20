@@ -44,13 +44,22 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
         },
         akeSuccess: function(data) {
             $(".overlay").hide();
+
             $(".trust").css({
                 backgroundImage: 'url("' + token + '")',
                 backgroundSize: "contain"
-            });
+            }).hide();
+
             if (data.trust === 'new') {
                 $("#new").show();
+            } else if (data.trust === 'unseen') {
+                $("#unseen").show();
+            } else if (data.trust === 'seen') {
+                $("#seen").show();
+            } else if (data.trust === 'trusted') {
+                $("#trusted").show();
             }
+
             console.log("akeSuccess", data.fingerprint, data.trust, data.prevFingerprints);
         },
         timeout: function(data) {
@@ -64,9 +73,7 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
     };
 
     $(".verify").click(function() {
-        port.sendMessage({
-            type: 'authenticate'
-        });
+        port.postMessage({ type: 'authenticate' });
     });
 
     var displayMsg = function(msg, own, encrypted, error) {
@@ -107,17 +114,18 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
         if (e.keyCode === 13 && !e.shiftKey) {
             var msg = $entry.val();
 
-            port.postMessage({ type: "send",
+            port.postMessage({ type: 'send',
                                msg: msg });
 
             $entry.val("");
             return false;
 
-        } else if ($entry.val() === "") {
-            port.postMessage({ type: "clear" });
-
+        }
+    }).keyup(function(e) {
+        if ($entry.val() !== "") {
+            port.postMessage({ type: 'typing' });
         } else {
-            port.postMessage({ type: "typing" });
+            port.postMessage({ type: 'clear' });
         }
     });
 

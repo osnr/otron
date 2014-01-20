@@ -28,6 +28,7 @@ var users = {};
 //                 unsafePortTabId: TabId
 //                 tabSafePorts: [TabId]
 //                 otr: OTR
+//
 //                 status: StatusMessageData
 //                 serverTypingState: Boolean
 //
@@ -48,6 +49,35 @@ var setStatus = function(chat, status) {
     console.log("setStatus", chat, status);
     chat.status = status;
     postToSafePorts(chat, status);
+};
+
+var setTrust = function(ownId, id, chat, fingerprint, trust) {
+    // this can be done 'offline' (eg in the options page)
+    var knownFingerprintsKey = makeName(["knownFingerprints", ownId, id]);
+
+    chrome.storage.local.get(knownFingerprintsKey, function(items) {
+        var knownFingerprints = items[knownFingerprintsKey] || [];
+        for (var i = 0; i < knownFingerprints.length; i++) {
+            if (knownFingerprints[i].fingerprint === fingerprint) break;
+        }
+        knownFingerprints[i] = {
+            fingerprint: fingerprint,
+            trust: trust
+        };
+        storageSet(knownFingerprintsKey, knownFingerprints);
+
+        if (chat && chat.status.status === 'akeSuccess') {
+            setStatus(chat, {
+                type: 'status',
+                status: 'akeSuccess',
+
+                fingerprint: fingerprint,
+                trust: trust,
+
+                prevFingerprints: chat.status.prevFingerprints
+            });
+        } 
+    });
 };
 
 var typing = function(chat) {
@@ -72,17 +102,17 @@ var typing = function(chat) {
     }
 };
 
-var notTyping = function(chat, justSent) {
+var notTyping = function(chat) {
     for (var tid in chat.tabSafePorts) {
         tid = parseInt(tid);
         chrome.pageAction.hide(tid);
     }
 
-    chat.serverTypingState = false;
-    if (!justSent) {
+    if (chat.serverTypingState) {
         // TODO tell server we're not typing anymore
         
     }
+    chat.serverTypingState = false;
 };
 
 var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
@@ -230,35 +260,35 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
                 var trust;
                 var prevFingerprints;
 
-                var knownFingerprints = items[knownFingerprintsKey];
-                if (knownFingerprints && knownFingerprints.length > 0) {
-                    var matchingFingerprints = knownFingerprints.filter(
-                        function(fp) {
-                            return fp.fingerprint === curFingerprint; });
+                var knownFingerprints = items[knownFingerprintsKey] || [];
+                for (var i = 0; i < knownFingerprints.length; i++) {
+                    if (knownFingerprints[i].fingerprint === curFingerprint) {
+                        // match!
+                        trust = knownFingerprints[i].trust;
 
-                    if (matchingFingerprints.length > 0) {
-                        // fingerprint matched!
-                        trust = matchingFingerprints[0].trust;
-
-                    } else {
-                        // alert user to fingerprint mismatch
-                        trust = 'new';
+                        knownFingerprints.splice(i, 1);
                         prevFingerprints = knownFingerprints;
 
-                        // we won't store this fingerprint until it's been verified
+                        break;
                     }
-
-                } else {
-                    // prompt for verification
-                    trust = 'new';
-
-                    storageSet(knownFingerprintsKey, [{
-                        fingerprint: curFingerprint,
-                        trust: trust
-                    }]);
+                }
+                if (!trust) {
+                    // no match
+                    if (knownFingerprints.length === 0) {
+                        trust = 'new';
+                        prevFingerprints = knownFingerprints;
+                    } else {
+                        trust = 'unseen'; // we have fingerprints, but not this one! bad sign
+                    }
                 }
 
-                console.log("AKE success");
+                knownFingerprints = prevFingerprints.slice(0);
+                knownFingerprints.push({
+                    fingerprint: curFingerprint,
+                    trust: trust === 'new' ? 'seen' : trust
+                });
+                storageSet(knownFingerprintsKey, knownFingerprints);
+
                 setStatus(chat, {
                     type: 'status',
                     status: 'akeSuccess',
@@ -278,6 +308,19 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
             });
 
             break;
+        }
+    });
+
+    chat.otr.on('smp', function(type, data, act) {
+        console.log("SMP", type, data, act);
+        if (type === 'question') {
+            authenticate(ownId, id, chat.otr.priv.fingerprint(), chat.status.fingerprint,
+                         'smp', data);
+
+        } else if (type === 'trust') {
+            if (data) {
+                setTrust(ownId, id, chat, chat.status.fingerprint, 'trusted');
+            }
         }
     });
 
@@ -341,28 +384,17 @@ var connectTab = function(user, ownId, id, tabId, safePort) {
                 msg: data.msg
             });
 
-            notTyping(chat, true);
+            chat.serverTypingState = false; // server assumes we're done typing
+            notTyping(chat);
 
         } else if (data.type === 'typing') {
             typing(chat);
+
         } else if (data.type === 'clear') {
             notTyping(chat);
 
         } else if (data.type === 'authenticate') {
-            var w = 300, h = 300;
-            chrome.windows.create({
-                url: chrome.extension.getURL("authenticate.html"),
-                type: "popup",
-                focused: true,
-
-                width: w,
-                height: h,
-                left: (screen.width / 2) - (w / 2),
-                top: (screen.height / 2) - (h / 2)
-
-            }, function(popup) {
-                console.log("made auth");
-            });
+            authenticate(ownId, id, chat.otr.priv.fingerprint(), chat.status.fingerprint);
         }
     });
 };
@@ -422,13 +454,101 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
     console.log(data);
 });
 
-chrome.runtime.onConnect.addListener(function(safePort) {
-    var namePieces = safePort.name.split("-");
-    if (!(namePieces[0] === "safePort")) return;
+var authenticate = function(ownId, id, ownFingerprint, fingerprint, mode, question) {
+    // mode = undefined/'both' | 'smp' | 'fingerprint'
 
-    var ownId = namePieces[1];
-    var id = namePieces[2];
+    var w = 460, h = 500;
+    chrome.windows.create({
+        url: chrome.extension.getURL("authenticate.html"),
+        type: "popup",
+        focused: true,
 
+        width: w,
+        height: h,
+        left: (screen.width / 2) - (w / 2),
+        top: (screen.height / 2) - (h / 2)
+
+    }, function(popup) {
+        chrome.tabs.query(
+            { windowId: popup.id },
+            function(tabs) {
+                chrome.tabs.sendMessage(tabs[0].id, {
+                    type: 'initAuthenticate',
+                    ownId: ownId,
+                    id: id,
+                    ownFingerprint: ownFingerprint,
+                    fingerprint: fingerprint,
+
+                    mode: mode,
+                    question: question
+                });
+            });
+    });
+};
+
+var onAuthConnect = function(ownId, id, fingerprint, authPort) {
+    var getChat = function() {
+        if (ownId in users && id in users[ownId].chats) {
+            return users[ownId].chats[id];
+        }
+    };
+
+    var onSmp = (function() { // chat mustn't leak from scope!
+        var chat = getChat();
+        var onSmp = function(type, data, act) {
+            // the 'question' case is handled in the main smp handler
+            // this handler is for when we need to touch the auth UI
+            if (type === 'trust') {
+                if (data) {
+                    // the actual status part is in main handler
+                    authPort.postMessage({ type: 'smpTrust' });
+                } else {
+                    authPort.postMessage({ type: 'smpFail', action: act });
+                }
+
+            } else if (type === 'abort') {
+                authPort.postMessage({ type: 'smpAbort' });
+            }
+        };
+        if (chat) chat.otr.on('smp', onSmp);
+        return onSmp;
+    })();
+
+    authPort.onMessage.addListener(function(data) {
+        console.log("authPort", data);
+        if (data.type === 'authFingerprint') {
+            // if we have an ongoing chat, we can update its status too
+            setTrust(ownId, id, getChat(), fingerprint, 'trusted');
+
+            authPort.postMessage({
+                type: 'fingerprintTrust'
+            });
+
+        } else if (data.type === 'authSmp') {
+            var chat = getChat();
+            if (!chat) return; // TODO fire error, no SMP without ongoing chat!
+
+            chat.otr.smpSecret(data.secret, data.prompt);
+
+            authPort.postMessage({ type: 'smpInit' });
+
+        } else if (data.type === 'authSmpResponse') {
+            var chat = getChat();
+            if (!chat) return;
+
+            chat.otr.smpSecret(data.secret);
+
+            authPort.postMessage({ type: 'smpResponseInit' });
+        }
+    });
+
+    authPort.onDisconnect.addListener(function() {
+        var chat = getChat();
+        if (chat) chat.otr.off('smp', onSmp);
+    });
+};
+
+var onSafePortConnect = function(ownId, id, safePort) {
     var tabId = safePort.sender.tab.id;
 
     if (!(ownId in users)) {
@@ -438,4 +558,13 @@ chrome.runtime.onConnect.addListener(function(safePort) {
     };
 
     connectTab(users[ownId], ownId, id, tabId, safePort);
+};
+
+chrome.runtime.onConnect.addListener(function(port) {
+    var namePieces = port.name.split("-");
+    if (namePieces[0] === "authenticate") {
+        onAuthConnect(namePieces[1], namePieces[2], namePieces[3], port);
+    } else if (namePieces[0] === "safePort") {
+        onSafePortConnect(namePieces[1], namePieces[2], port);
+    }
 });

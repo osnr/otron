@@ -444,7 +444,7 @@ function start(target, ownId) {
         if (chat) chats.push(chat);
     };
 
-    // create an observer instance
+    // create an observer instance to watch for new/closed chats
     // TODO replace with more FB hooks :D
     var observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {

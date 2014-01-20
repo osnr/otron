@@ -55,7 +55,6 @@ var loadData = function() {
                 var name = data['name-' + ownId + '-' + id];
                 var knownFingerprints = data[k];
 
-                console.log(knownFingerprints);
                 for (var i = 0; i < knownFingerprints.length; i++) {
                     appendKeyView($('#key-list'),
                                   name,

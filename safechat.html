@@ -7,14 +7,22 @@
     </head>
     <body>
         <div id="new" style="display: none" class="trust">
-            <span class="fingerprint">Identity new and untrusted.</span>
+            <img class="icon" src="img/exclamation-circle.png"></img>
+            <span class="fingerprint">Identity new and unverified.</span>
             <button class="verify">Verify...</button>
         </div>
-        <div id="unverified" style="display: none" class="trust">
-            <span class="fingerprint">Identity not trusted.</span>
+        <div id="unseen" style="display: none" class="trust">
+            <img class="icon" src="img/exclamation-triangle.png"></img>
+            <span class="fingerprint">Identity changed, not verified!</span>
             <button class="verify">Verify...</button>
         </div>
-        <div id="verified" style="display: none" class="trust">
+        <div id="seen" style="display: none" class="trust">
+            <img class="icon" src="img/exclamation-circle.png"></img>
+            <span class="fingerprint">Identity seen but not verified.</span>
+            <button class="verify">Verify...</button>
+        </div>
+        <div id="trusted" style="display: none" class="trust">
+            <img class="icon" src="img/check-circle.png"></img>
             <span class="fingerprint">Verified identity.</span>
         </div>
         <div id="messages"></div>

@@ -5,17 +5,9 @@
         <script src="lib/identicon.js"></script>
         <script src="js/generating.js"></script>
 
+        <link rel="stylesheet" type="text/css" href="css/popup.css"></link>
         <style>
-            body {
-                font-family: 'lucida grande',tahoma,verdana,arial,sans-serif;
-                font-size: 11px;
-            }
-
-            a {
-                text-decoration: none;
-            }
-
-            #fingerprint, #token canvas {
+            .fingerprint, #token canvas {
                 text-align: center;
             }
 
@@ -46,7 +38,7 @@
                 <p>OTRon has generated a public and private key for you.</p>
                 <p><a href="options.html#keys" class="learn-more" target="_blank">(Learn more about your public and private key pair.)</a></p>
                 <p>Share this public key fingerprint with your friends in person, so they know they're chatting with the real you:</p>
-                <p id="fingerprint"></p>
+                <p class="fingerprint"></p>
             </div>
             <hr class="genBoth"></hr>
             <div class="genToken genBoth">
