@@ -60,6 +60,15 @@ var restoreSelection = function(containerEl, savedSel) {
             port = chrome.runtime.connect({ name: makeName(["authenticate", data.ownId, data.id, data.fingerprint]) });
             port.onMessage.addListener(onMessage);
 
+            var nameKey = makeName(["name", ownId, id]);
+            chrome.storage.local.get(nameKey, function(items) {
+                if (!(nameKey in items)) return;
+                var name = items[nameKey];
+
+                document.title = name + " - OTRon identity authentication";
+                $(".friend-name").text(name);
+            });
+
             $(".screen").hide();
             if (!data.mode || data.mode === 'both') {
                 $(".own-fingerprint").text(data.ownFingerprint.match(/(.{1,8})/g).join(' '));
@@ -106,12 +115,6 @@ var restoreSelection = function(containerEl, savedSel) {
             $("#init-smp").show();
         }
     };
-
-    // onInitAuthenticate({
-    //     type: 'initAuthenticate',
-    //     ownFingerprint: 'ownFingerprint',
-    //     fingerprint: 'fingerprint'
-    // });
 
     var startFingerprintAuth = function() {
         $(".screen").hide();

@@ -52,18 +52,32 @@ var loadData = function() {
 
             } else if (kPieces.length === 3 && kPieces[0] === 'knownFingerprints') {
                 var ownId = kPieces[1], id = kPieces[2];
-                var name = data['name-' + ownId + '-' + id];
+                var nameKey = makeName(["name", ownId, id]);
+                var name = data[nameKey];
                 var knownFingerprints = data[k];
 
                 for (var i = 0; i < knownFingerprints.length; i++) {
-                    appendKeyView($('#key-list'),
-                                  name,
-                                  knownFingerprints[i].fingerprint,
-                                  knownFingerprints[i].trust,
-                                  function remove() {
-                                      // TODO fix
-                                      chrome.storage.local.remove(k);
-                                  });
+                    (function(k, i) {
+                        appendKeyView($('#key-list'),
+                                      name,
+                                      knownFingerprints[i].fingerprint,
+                                      knownFingerprints[i].trust,
+                                      function remove() {
+                                          knownFingerprints.splice(i, 1);
+
+                                          if (knownFingerprints.length > 0) {
+                                              storageSet(k, knownFingerprints);
+                                          } else {
+                                              // forget the whole conversation!
+                                              chrome.storage.local.remove([
+                                                  nameKey, // name
+                                                  k, // knownFingerprints
+                                                  makeName(["chatEncrypt", ownId, id])
+                                                  makeName(["instanceTag", ownId, id])
+                                              ]);
+                                          }
+                                      });
+                    })(k, i);
                 }
             } else if (k === 'token') {
                 var token = data[k];

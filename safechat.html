@@ -1,13 +1,15 @@
 <html>
     <head>
         <script src="lib/jquery.min.js"></script>
+        <script src="lib/bootstrap.js"></script>
         <script src="js/safechat.js"></script>
 
+        <link rel="stylesheet" type="text/css" href="lib/bootstrap.css"></link>
         <link rel="stylesheet" type="text/css" href="css/safechat.css"></link>
     </head>
     <body>
         <div id="new" style="display: none" class="trust">
-            <img class="icon" src="img/exclamation-circle.png"></img>
+            <img class="icon circle" src="img/exclamation-circle.png"></img>
             <span class="fingerprint">Identity new and unverified.</span>
             <button class="verify">Verify...</button>
         </div>
@@ -17,7 +19,7 @@
             <button class="verify">Verify...</button>
         </div>
         <div id="seen" style="display: none" class="trust">
-            <img class="icon" src="img/exclamation-circle.png"></img>
+            <img class="icon circle" src="img/exclamation-circle.png"></img>
             <span class="fingerprint">Identity seen but not verified.</span>
             <button class="verify">Verify...</button>
         </div>

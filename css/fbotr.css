@@ -90,3 +90,8 @@ a.otr-locked:hover {
 .safeEntry {
     background-color: #fffff0;
 }
+
+.encryptedNub .fbNubFlyoutTitlebar {
+    /* TODO kill highlightTab directly */
+    background-color: #4d68a2 !important;
+}

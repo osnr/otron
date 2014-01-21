@@ -51,7 +51,7 @@ button:active {
     height: 28px;
     width: 100%;
 
-    border-bottom: 1px solid rgba(0, 0, 0, .1);
+    border-bottom: 1px solid rgba(0, 0, 0, .15);
 }
 .trust:before {
     content: '';
@@ -70,6 +70,12 @@ button:active {
     width: 9px;
     height: 9px;
 }
+.icon.circle {
+    border-radius: 6px;
+    margin-top: -1px;
+    border: 1px solid rgb(176, 114, 19);
+}
+
 .trust .fingerprint {
     position: absolute;
     left: 20px;
@@ -78,12 +84,21 @@ button:active {
 }
 
 #new .fingerprint, #seen .fingerprint {
-    color: #7F6C00;
-    border-color: #7F6C00;
+    color: rgb(176, 114, 19);
+    border-color: rgb(176, 114, 19);
 }
 #unseen .fingerprint {
     color: red;
     border-color: red;
+}
+
+.tip-token {
+    display: inline-block;
+    background-size: contain;
+    width: 1em;
+    height: 1em;
+    margin-top: 0.5em;
+    margin-right: 0.5em;
 }
 
 .verify {
@@ -116,7 +131,6 @@ button:active {
 }
 .message {
     background-color: #f7f7f7;
-    background-image: -webkit-linear-gradient(bottom, #f2f2f2, #fff);
 
     border: 1px solid rgba(0, 0, 0, .18);
     border-bottom-color: rgba(0, 0, 0, .29);
@@ -137,7 +151,6 @@ button:active {
 }
 .message.own {
     background-color: #dbedfe;
-    background-image: -webkit-linear-gradient(bottom, #c7defe, #e7f1fe);
 
     float: right;
 }
@@ -154,14 +167,15 @@ button:active {
     left: 0;
     right: 0;
     max-width: none;
-    height: 25px;
 
     background: #ddd;
     -webkit-border-radius: 0;
     -webkit-box-shadow: none;
     border: none;
+
+    text-align: center;
 }
-.message:not(.encrypted) {
+.message:not(.encrypted):not(.error) {
     border: 1px solid red;
 }
 

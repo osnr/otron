@@ -212,6 +212,9 @@ var Chat = function(chat, ownId) {
     // which is what actually activates encryption
     // (for all tabs at once, not just this one)
     var enableEncryption = function() {
+        // why Math.random?
+        // so that this triggers a change in state when the user asks,
+        // and doesn't just reconfirm "yeah, we were using encryption before"
         storageSet(chatIsEncryptKey(ownId, id), 1 + Math.random());
     };
 
@@ -294,7 +297,7 @@ var Chat = function(chat, ownId) {
     var addEncryptButton = function() {
         return $('<a data-hover="tooltip" aria-label="Encrypt this chat with OTR"' +
                  ' class="otr-unlocked otr-icon-button" role="button"></a>')
-            .insertAfter($(chat).find(".addToThread"))
+            .insertBefore($(chat).find(".close.button"))
             .click(function(e) {
                 enableEncryption();
                 return false;
@@ -305,8 +308,12 @@ var Chat = function(chat, ownId) {
         $(chat)
             .find(".safe-chat").remove().end()
             .find(".addToThread").show().end()
-            .find(".fbNubFlyoutBody").show().end()
-            .find(".fbNubFlyoutFooter").show().end();
+            .find(".titlebarButtonWrapper .uiSelector.inlineBlock").show().end()
+            .find(".fbNubFlyoutBody")
+                .show() // TODO fix bug
+                .end()
+            .find(".fbNubFlyoutFooter").show().end()
+            .closest(".fbNub").removeClass("encryptedNub");
 
         $(window).off("resize");
     };
@@ -333,7 +340,9 @@ var Chat = function(chat, ownId) {
                           chrome.extension.getURL("safechat.html") +
                           '?' + uuid + '"></iframe>');
         $(chat)
+            .closest(".fbNub").addClass("encryptedNub").end()
             .find(".addToThread").hide().end()
+            .find(".titlebarButtonWrapper .uiSelector.inlineBlock").hide().end() // settings gear
             .find(".fbNubFlyoutBody").hide().end()
             .find(".fbNubFlyoutFooter")
                 .hide()
@@ -350,6 +359,8 @@ var Chat = function(chat, ownId) {
             var data = {
                 type: 'initSafeChat',
                 uuid: uuid,
+
+                name: name,
                 token: token,
                 ownId: ownId,
                 id: id,
@@ -413,7 +424,7 @@ var Chat = function(chat, ownId) {
     var addDecryptButton = function() {
         return $('<a data-hover="tooltip" aria-label="Stop encrypting this chat"' +
                  ' class="otr-locked otr-icon-button button" role="button"></a>')
-            .insertAfter($(chat).find(".addToThread"))
+            .insertBefore($(chat).find(".close.button"))
             .click(function(e) {
                 disableEncryption();
                 return false;

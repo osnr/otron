@@ -22,6 +22,7 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
 
     console.log(data);
 
+    var name = data.name;
     var ownId = data.ownId;
     var id = data.id;
 
@@ -29,6 +30,15 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
     if (token.substring(0, 5) !== "data:") token = "about:blank";
     var profilePhoto = data.profilePhoto;
     if (profilePhoto.substring(0, 5) !== "data:") profilePhoto = "";
+
+    $("<style>.token {" +
+      "    background-image: url(" + token + ");" +
+      "    background-size: contain;" +
+      "    position: absolute;" +
+      "    opacity: 0.15;" +
+      "    margin-left: -5px; margin-top: -3px;" +
+      "}</style>")
+        .appendTo("head");
 
     var oldMessages = data.messages;
 
@@ -50,15 +60,19 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
                 backgroundSize: "contain"
             }).hide();
 
-            if (data.trust === 'new') {
-                $("#new").show();
-            } else if (data.trust === 'unseen') {
-                $("#unseen").show();
-            } else if (data.trust === 'seen') {
-                $("#seen").show();
-            } else if (data.trust === 'trusted') {
-                $("#trusted").show();
-            }
+            $("#" + data.trust).show().find(".icon, .fingerprint").tooltip({
+                html: true,
+                placement: 'auto',
+                title: function() {
+                    return '<div class="tip-token" style="background-image: url(' +
+                        token + ')"></div>' + ({
+                            new: "Identity new and unverified",
+                            unseen: "Identity suddenly changed,<br>new identity not verified!",
+                            seen: "Identity seen before,<br>but not verified yet",
+                            trusted: "You've verified this identity"
+                        })[this.parentElement.id];
+                }
+            });
 
             console.log("akeSuccess", data.fingerprint, data.trust, data.prevFingerprints);
         },
@@ -76,25 +90,64 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
         port.postMessage({ type: 'authenticate' });
     });
 
+    var formatDate = function(date) {
+        var h = date.getHours();
+        var m = date.getMinutes();
+
+        var dd = "am";
+        if (h >= 12) {
+            dd = "pm";
+            h -= 12;
+        }
+        if (h === 0) {
+            h = 12;
+        }
+        m = m < 10 ? "0" + m : m;
+
+        return h + ":" + m + dd;
+    };
+
     var displayMsg = function(msg, own, encrypted, error) {
         var $row = $('<div class="row"></div>');
 
         if (!own) {
             $('<img class="profilePhoto"></img>')
                 .attr("src", profilePhoto)
-                .appendTo($row);
+                .tooltip({
+                    placement: 'bottom',
+                    html: true,
+                    title: $("<div></div>")
+                        .append(document.createTextNode(name))
+                        .append("<br>")
+                        .append(encrypted ?
+                                '<div class="tip-token" style="background-image: url(' +
+                                token + ')"></div>' :
+                                "")
+                        .append(document.createTextNode(formatDate(new Date())))
+                        .html()
+                }).appendTo($row);
         }
 
         var $msg = $('<div class="message"></div>')
-            .text(msg);
+                .text(msg);
+
         if (own) $msg.addClass("own");
         if (encrypted) $msg.addClass("encrypted");
-        if (error) $msg.addClass("error");
+        if (error) {
+            $msg.prepend($('<img src="img/exclamation-circle.png"></img>'))
+                .addClass("error");
+        }
         $msg.appendTo($row);
 
         $("#messages")
             .append($row)
             .scrollTop($("#messages").prop("scrollHeight"));
+
+        if (encrypted) {
+            $msg.prepend($('<div class="token"></div>')
+                         .height($msg.outerHeight() - 4)
+                         .width($msg.outerWidth() - 2));
+        }
 
         return $msg;
     };
