@@ -9,6 +9,7 @@ $(document).ready(function() {
 
     chrome.runtime.onMessage.addListener(function(data) {
         if (data.type !== 'doneGen') return;
+        console.log(data);
 
         $("#generating").hide();
         $("#done").show();
@@ -19,7 +20,8 @@ $(document).ready(function() {
         }
 
         if (mode === 'genToken' || mode === 'genBoth') {
-            $("#token-image").attr("src", data.token);
+            $("#token-image").attr("src", data.token.image);
+            $("#token-color").css("background-color", "rgba(" + data.token.color.join(",") + ")");
         }
     });
 

@@ -1,6 +1,6 @@
 "use strict";
 
-var appendKeyView = function(el, name, fingerprint, trust, remove) {
+var appendKeyView = function(el, name, fingerprint, trust, auth, remove) {
     fingerprint = fingerprint.match(/(.{1,8})/g).join(' ');
 
     var $view = $('.fingerprint-view-template')
@@ -18,12 +18,19 @@ var appendKeyView = function(el, name, fingerprint, trust, remove) {
             .prependTo($view);
     }
 
+    if (trust !== 'trusted' && auth) {
+        $view.find('.auth-key').click(function() {
+            auth();
+        });
+    } else {
+        $view.find('.auth-key').remove();
+    }
+
     if (remove) {
-        $view.find('.remove-key')
-            .click(function() {
-                remove();
-                $view.slideUp(function() { $view.remove(); });
-            }).appendTo($view);
+        $view.find('.remove-key').click(function() {
+            remove();
+            $view.slideUp(function() { $view.remove(); });
+        });
     } else {
         $view.find('.remove-key').remove();
     }
@@ -37,18 +44,20 @@ var loadData = function() {
         $('#own-public-key .fingerprint-view').remove();
         $('#key-list .fingerprint-view').remove();
 
+        var ownFingerprint;
         for (var k in data) {
             if (!data.hasOwnProperty(k)) continue;
 
             var kPieces = k.split('-');
             if (k === 'ownFingerprint') {
-                var fingerprint = data[k];
+                ownFingerprint = data[k];
 
                 appendKeyView($('#own-public-key'),
                               '',
-                              fingerprint,
+                              ownFingerprint,
                               false,
-                              false);
+                              null,
+                              null);
 
             } else if (kPieces.length === 3 && kPieces[0] === 'knownFingerprints') {
                 var ownId = kPieces[1], id = kPieces[2];
@@ -62,6 +71,15 @@ var loadData = function() {
                                       name,
                                       knownFingerprints[i].fingerprint,
                                       knownFingerprints[i].trust,
+                                      function auth() {
+                                          chrome.runtime.sendMessage({
+                                              type: 'authFingerprint',
+                                              ownId: ownId,
+                                              id: id,
+                                              ownFingerprint: ownFingerprint,
+                                              fingerprint: knownFingerprints[i].fingerprint
+                                          });
+                                      },
                                       function remove() {
                                           knownFingerprints.splice(i, 1);
 
@@ -72,7 +90,7 @@ var loadData = function() {
                                               chrome.storage.local.remove([
                                                   nameKey, // name
                                                   k, // knownFingerprints
-                                                  makeName(["chatEncrypt", ownId, id])
+                                                  makeName(["chatEncrypt", ownId, id]),
                                                   makeName(["instanceTag", ownId, id])
                                               ]);
                                           }
@@ -82,7 +100,9 @@ var loadData = function() {
             } else if (k === 'token') {
                 var token = data[k];
 
-                $('#security-token').attr('src', token);
+                $('#security-token-image').attr('src', token.image);
+                $('#page-token').attr('src', token.image);
+                $('#security-token-color').css('background-color', "rgba(" + token.color.join(",") + ")");
             }
         }
     });

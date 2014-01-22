@@ -8,6 +8,11 @@
         <title>OTRon Options</title>
 
         <style>
+            #page-token {
+                margin-left: 24px;
+                width: 64px;
+                height: 64px;
+            }
             .fingerprint-view > dl {
                 margin-top: -0.5em;
             }
@@ -27,30 +32,32 @@
                 <h1><a href="#">OTRon</a></h1>
 
                 <ul class="menu">
-                    <li class="selected"><a href="#chat">Chat</a></li>
-                    <li><a href="#keys">Keys</a></li>
+                    <!-- <li class="selected"><a href="#chat">Chat</a></li> -->
+                    <li class="selected"><a href="#keys">Keys</a></li>
                     <li><a href="#security">Security</a></li>
                 </ul>
+
+                <img id="page-token"></img>
             </div>
             <div class="mainview view">
-                <div id="chat" class="selected">
-                    <header>
-                        <h1>Chat</h1>
-                    </header>
-                    <div class="content">
-                        <!-- <section> -->
-                        <!--     <h3>Whitespace tagging</h3> -->
-                        <!--     By default, OTRon tags some messages you send to your friends with a pattern of spaces, letting them know that you're ready to encrypt. This pattern is usually invisible. -->
-                        <!--     <p> -->
-                        <!--         <label> -->
-                        <!--             <input type="checkbox"> -->
-                        <!--             <span>Enable whitespace tagging</span> -->
-                        <!--         </label> -->
-                        <!--     </p> -->
-                        <!-- </section> -->
-                    </div>
-                </div>
-                <div id="keys">
+                <!-- <div id="chat" class="selected"> -->
+                <!--     <header> -->
+                <!--         <h1>Chat</h1> -->
+                <!--     </header> -->
+                <!--     <div class="content"> -->
+                <!--         <section> -->
+                <!--             <h3>Whitespace tagging</h3> -->
+                <!--             By default, OTRon tags some messages you send to your friends with a pattern of spaces, letting them know that you're ready to encrypt. This pattern is usually invisible. -->
+                <!--             <p> -->
+                <!--                 <label> -->
+                <!--                     <input type="checkbox"> -->
+                <!--                     <span>Enable whitespace tagging</span> -->
+                <!--                 </label> -->
+                <!--             </p> -->
+                <!--         </section> -->
+                <!--     </div> -->
+                <!-- </div> -->
+                <div id="keys" class="selected">
                     <header>
                         <h1>Keys</h1>
                     </header>
@@ -79,6 +86,7 @@
                             <dd class="fingerprint">foo bar baz qux</dd>
                         </dl>
                         <div class="spacer"></div>
+                        <button class="auth-key">Verify</button>
                         <button class="remove-key">Forget</button>
                     </div>
                 </div>
@@ -90,15 +98,15 @@
                         <section>
                             <h3>Security token</h3>
                             <p>This security token watermark sits underneath all messages OTRon decrypts. If you don't see this token underneath a chat bubble, it may have been tampered with.</p>
-                            <img id="security-token"></img>
+                            <img id="security-token-image"></img>
                         </section>
                         <section>
                             <h3>Secure input verification</h3>
-                            <p>A small symbol, sitting on the right side of the address bar, should update as you type in an encrypted message. If the symbol isn't updating while you compose your message, your message is being intercepted while you type, possibly by an attacker.</p>
+                            <p>A small symbol should update on the side as you type in an encrypted message. It will have this color:&nbsp;<span id="security-token-color">security color</span>. If the symbol isn't updating while you compose your message, or if it has the wrong color, your message is being intercepted while you type, possibly by an attacker.</p>
                         </section>
                         <section>
                             <h3>Regenerate</h3>
-                            <p>If someone sees your token, they might copy it down and try to fool you into entering input somewhere unsafe.</p>
+                            <p>If someone sees your token, they might copy it down and try to fool you into typing or reading somewhere unsafe.</p>
                             <button id="regenerate-token">Regenerate</button>
                         </section>
                     </div>

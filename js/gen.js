@@ -4,11 +4,11 @@ function makePopup(mode, callback) {
     var w = 350;
     var h;
     if (mode === 'genBoth') {
-        h = 430;
+        h = 450;
     } else if (mode === 'genKey') {
         h = 150;
     } else if (mode === 'genToken') {
-        h = 330;
+        h = 350;
     }
     chrome.windows.create({
         url: chrome.extension.getURL("generating.html") + "?" + mode,
@@ -21,6 +21,42 @@ function makePopup(mode, callback) {
         top: (screen.height / 2) - (h / 2)
     }, callback);
 }
+
+// from https://gist.github.com/snorpey/5990253
+var getAverageColor = (function() {
+    var i;
+    var len;
+    var multiplicator = 20;
+    var count;
+    var rgba;
+    
+    function getAverageRGBA( image_data, resolution ) {
+	multiplicator = parseInt( resolution, 10 ) > 1 ? parseInt( resolution, 10 ) : 10;
+	len = image_data.data.length;
+	count = 0;
+	rgba = [ 0, 0, 0, 0 ];
+        
+	for ( i = 0; i < len; i += multiplicator * 4 )
+	{
+	    rgba[0] = rgba[0] + image_data.data[i];
+	    rgba[1] = rgba[1] + image_data.data[i + 1];
+	    rgba[2] = rgba[2] + image_data.data[i + 2];
+	    rgba[3] = rgba[3] + image_data.data[i + 3];
+            
+	    count++;
+	}
+        
+	rgba[0] = ~~ ( rgba[0] / count );
+	rgba[1] = ~~ ( rgba[1] / count );
+	rgba[2] = ~~ ( rgba[2] / count );
+	rgba[3] = ~~ ( rgba[3] / count );
+        
+	return rgba;
+    }
+    
+    return getAverageRGBA;
+})();
+
 
 function generate(mode, callback) {
     makePopup(mode, function(popup) {
@@ -68,7 +104,11 @@ function generate(mode, callback) {
 
             if (mode === 'genToken' || mode === 'genBoth') {
                 var canvas = randIconCanvas(128);
-                token = canvas.toDataURL("image/png")
+                token = {
+                    image: canvas.toDataURL("image/png"),
+                    color: getAverageColor(canvas.getContext("2d").getImageData(0, 0, 128, 128),
+                                           128)
+                };
 
                 chrome.storage.local.set({
                     token: token
@@ -109,39 +149,3 @@ function randIconCanvas(size) {
 
     return canvas;
 }
-
-var getAverageColor = (function() { // from https://gist.github.com/snorpey/5990253
-    var i;
-    var len;
-    var multiplicator = 20;
-    var count;
-    var rgba;
-    
-    function getAverageRGBA( image_data, resolution )
-    {
-	multiplicator = parseInt( resolution, 10 ) > 1 ? parseInt( resolution, 10 ) : 10;
-	len = image_data.data.length;
-	count = 0;
-	rgba = [ 0, 0, 0, 0 ];
-        
-	for ( i = 0; i < len; i += multiplicator * 4 )
-	{
-	    rgba[0] = rgba[0] + image_data.data[i];
-	    rgba[1] = rgba[1] + image_data.data[i + 1];
-	    rgba[2] = rgba[2] + image_data.data[i + 2];
-	    rgba[3] = rgba[3] + image_data.data[i + 3];
-            
-	    count++;
-	}
-        
-	rgba[0] = ~~ ( rgba[0] / count );
-	rgba[1] = ~~ ( rgba[1] / count );
-	rgba[2] = ~~ ( rgba[2] / count );
-	rgba[3] = ~~ ( rgba[3] / count );
-        
-	return rgba;
-    }
-    
-    return getAverageRGBA;
-})();
-

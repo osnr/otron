@@ -119,16 +119,20 @@ button:active {
 
     overflow-y: auto;
 }
+
 .row {
     min-height: 33px;
     overflow: auto;
+    position: relative;
 }
+
 .profilePhoto {
     position: absolute;
     width: 32px;
     height: 32px;
     left: 4px;
 }
+
 .message {
     background-color: #f7f7f7;
 
@@ -137,7 +141,7 @@ button:active {
     -webkit-border-radius: 4px;
     -webkit-box-shadow: 0 1px 0 #dce0e6;
 
-    margin: 5px 5px 5px 40px;
+    margin: 0px 5px 5px 45px;
     padding: 4px 6px 3px 5px;
     float: left;
 
@@ -149,10 +153,36 @@ button:active {
 
     max-width: 157px;
 }
+
+.message:not(.own):not(.error):before {
+    content: '';
+
+    position: absolute;
+    top: 8px;
+    left: 39px;
+
+    width: 0;
+    height: 0;
+
+    border-bottom: 5px solid transparent;  /* left arrow slant */
+    border-top: 5px solid transparent; /* right arrow slant */
+    border-right: 5px solid #f7f7f7; /* bottom, add background color here */
+    font-size: 0;
+    line-height: 0;
+}
+
 .message.own {
-    background-color: #dbedfe;
+    /* background-color: #dbedfe; */
 
     float: right;
+}
+
+.message.typing {
+    background-color: rgb(237, 239, 244);
+    -webkit-box-shadow: none;
+    border: 1px solid rgb(200, 202, 206);
+    color: rgb(209, 211, 215);
+    vertical-align: middle;
 }
 
 .message.error {
@@ -175,9 +205,16 @@ button:active {
 
     text-align: center;
 }
-.message:not(.encrypted):not(.error) {
+.message.error img {
+    height: 9px;
+    width: 9px;
+    margin-right: 0.2em;
+}
+
+.message:not(.encrypted):not(.error):not(.typing) {
     border: 1px solid red;
 }
+
 
 #entry {
     position: absolute;
@@ -197,4 +234,10 @@ button:active {
     outline: none;
     box-shadow: none;
     resize: none;
+}
+
+#entry-token {
+    position: absolute;
+    bottom: 2;
+    right: 2;
 }

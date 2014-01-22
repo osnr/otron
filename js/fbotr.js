@@ -4,6 +4,39 @@ var chatIsEncryptKey = function(ownId, id) {
     return makeName(["chatEncrypt", ownId, id]);
 };
 
+var sendTyping = (function() {
+    function generateTtstamp(dtsg) {
+        var ttstamp = "2";
+        for (var i = 0; i < dtsg.length; i++) {
+            ttstamp += dtsg.charCodeAt(i);
+        }
+        return ttstamp;
+    }
+
+    return function(fbid, targetFbid, dtsg, typing) {
+        var data = {
+            "typ": typing ? 1 : 0,
+            "to": targetFbid,
+            "source": "mercury-chat",
+            // "thread": "", // this is hard to derive
+
+            "__user": fbid,
+            "__a": 1, // wtf is this?
+            "__dyn": "7n8a9EAMNpFER6gDxrHaHyG85oCQqbx2mbyaFaaBG", // loaded module hash
+            "__req": "qq", // sposed to be base-36 counter, I think
+
+            "fb_dtsg": dtsg,
+            "ttstamp": generateTtstamp(dtsg)
+            // "__rev": "??" // SVN revision
+        };
+
+        var req = $.param(data);
+        $.post("ajax/messaging/typ.php", req, function() {
+            console.log("typin success", arguments);
+        });
+    };
+})();
+
 var sendMessage = (function() {
     // based on Krumiro bookmarklet: https://gist.github.com/FiloSottile/4215248
     function random(len) {
@@ -78,6 +111,28 @@ var removeReceiveListener = function(fbid) {
 
 var initChatInterception = function() {
     runInPageContext(function otrIntercept() {
+        /* intercept typing status change */
+        var mti = require("MercuryTypingIndicator");
+        if (!mti) {
+            setTimeout(otrIntercept, 100);
+            return;
+        }
+        var mtip = mti.prototype;
+        var hsc = mtip._handleStateChanged;
+
+        mtip._handleStateChanged = function(typers) {
+            if (typers.length > 1) return hsc.apply(this, arguments);
+
+            var id = this._threadID.substring(5);
+            window.postMessage({
+                type: 'unsafeRecvTyping',
+                sender: id,
+                typing: typers.indexOf("fbid:" + id) !== -1
+            }, "*");
+
+            return hsc.apply(this, arguments);
+        };
+
         /* intercept incoming messages and forward to us so we can look for ?OTR: */
         var ctmv = require("ChatTabMessagesView");
         if (!ctmv) {
@@ -95,7 +150,7 @@ var initChatInterception = function() {
                     sender: message.author.substring("fbid:".length),
                     mid: message.message_id,
                     msg: message.body
-                }, "https://www.facebook.com");
+                }, "*");
             });
 
             return anm.apply(this, arguments);
@@ -109,20 +164,45 @@ var initChatInterception = function() {
         }
         var ts = msd.trySend;
 
-        var ps = require("PresenceStatus");
-        if (!ps) {
+        var ctv = require("ChatTabView");
+        if (!ctv) {
             setTimeout(otrIntercept, 100);
             return;
         }
+        var ctvp = ctv.prototype;
+        var uas = ctvp.updateAvailableStatus;
+
+        var tagNextMsg = {};
+        ctvp.updateAvailableStatus = function() {
+            tagNextMsg[this._getCanonicalUserID()] = true;
+            return uas.apply(this, arguments);
+        };
 
         msd.trySend = function(uri, data) {
             if (uri === "/ajax/mercury/send_messages.php" &&
                 "message_batch" in data) {
+                console.log("tagging", data);
 
                 for (var i = 0; i < data.message_batch.length; i++) {
+                    var message = data.message_batch[i];
+
+                    var tag = false;
+                    var id;
+                    message.specific_to_list.forEach(function(fbid) {
+                        id = fbid.substring(5);
+                        if (fbid !== message.author &&
+                            tagNextMsg[id]) {
+
+                            tag = true;
+                            tagNextMsg[id] = false;
+                        }
+                    });
+
+                    if (!tag) continue;
+
                     /* TODO only send at beginning of chat */
                     /* append constant WHITESPACE_TAG */
-                    data.message_batch[i].body +=
+                    message.body +=
                         "\x20\x09\x20\x20\x09\x09\x09\x09" +
                         "\x20\x09\x20\x09\x20\x09\x20\x20" +
                         "\x20\x20\x09\x09\x20\x20\x09\x20" + /* OTRv2 */
@@ -137,14 +217,8 @@ var initChatInterception = function() {
     window.addEventListener("message", function(event) {
         if (event.source !== window) return;
 
-        if (event.data.type === 'unsafeRecv' &&
-            event.data.sender in receiveListeners) {
-
-            receiveListeners[event.data.sender]({
-                type: 'unsafeRecv',
-                mid: event.data.mid,
-                msg: event.data.msg
-            });
+        if (event.data.sender in receiveListeners) {
+            receiveListeners[event.data.sender](event.data);
         }
     });
 };
@@ -257,6 +331,8 @@ var Chat = function(chat, ownId) {
 
         chrome.runtime.onConnect.removeListener(runtimeOnConnect);
         setReceiveListener(id, function(data) {
+            if (data.type !== 'unsafeRecv') return;
+
             var tagPoint = data.msg.indexOf("\x20\x09\x20\x20\x09\x09\x09\x09" +
                                             "\x20\x09\x20\x09\x20\x09\x20\x20");
             if (tagPoint !== -1) {
@@ -310,7 +386,7 @@ var Chat = function(chat, ownId) {
             .find(".addToThread").show().end()
             .find(".titlebarButtonWrapper .uiSelector.inlineBlock").show().end()
             .find(".fbNubFlyoutBody")
-                .show() // TODO fix bug
+                .show() // TODO fix scroll bug
                 .end()
             .find(".fbNubFlyoutFooter").show().end()
             .closest(".fbNub").removeClass("encryptedNub");
@@ -409,13 +485,23 @@ var Chat = function(chat, ownId) {
         if (port.name !== unsafePortName(ownId, id)) return;
 
         setReceiveListener(id, function(data) {
-            port.postMessage({ type: 'unsafeRecv',
-                               msg: data.msg });
+            if (data.type === 'unsafeRecvTyping') {
+                port.postMessage({ type: 'unsafeRecvTyping',
+                                   typing: data.typing });
+
+            } else if (data.type === 'unsafeRecv') {
+                port.postMessage({ type: 'unsafeRecv',
+                                   msg: data.msg });
+            }
         });
 
         port.onMessage.addListener(function(data) {
-            // the user wants to send a message
-            if (data.type === 'unsafeSend') {
+            // relay stuff from event.js out to the wide,
+            // unsafe world
+            if (data.type === 'unsafeSendTyping') {
+                sendTyping(ownId, id, dtsg, data.typing);
+
+            } else if (data.type === 'unsafeSend') {
                 sendMessage(ownId, id, dtsg, data.msg);
             }
         });

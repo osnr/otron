@@ -32,8 +32,6 @@
         "img/lock-hover.png"
     ],
 
-    "page_action": {},
-
     "options_page": "options.html",
 
     "permissions": ["storage"]

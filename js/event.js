@@ -81,36 +81,22 @@ var setTrust = function(ownId, id, chat, fingerprint, trust) {
 };
 
 var typing = function(chat) {
-    var canvas = randIconCanvas(19);
-    var imData = canvas.getContext("2d").getImageData(0, 0, 19, 19);
-
-    for (var tid in chat.tabSafePorts) {
-        tid = parseInt(tid);
-
-        chrome.pageAction.show(tid);
-        chrome.pageAction.setIcon({
-            tabId: tid,
-            imageData: imData
-        });
-    }
-
     if (!chat.serverTypingState) {
         chat.serverTypingState = true;
 
-        // TODO tell server we're typing
-        
+        chat.unsafePort.postMessage({
+            type: 'unsafeSendTyping',
+            typing: true
+        });
     }
 };
 
 var notTyping = function(chat) {
-    for (var tid in chat.tabSafePorts) {
-        tid = parseInt(tid);
-        chrome.pageAction.hide(tid);
-    }
-
     if (chat.serverTypingState) {
-        // TODO tell server we're not typing anymore
-        
+        chat.unsafePort.postMessage({
+            type: 'unsafeSendTyping',
+            typing: false
+        });
     }
     chat.serverTypingState = false;
 };
@@ -152,7 +138,13 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
         unsafePortOnMessage: function(data) {
             // message from fbotr.js / fb.com
             // dispatch to OTR
-            if (data.type === 'unsafeRecv') {
+            if (data.type === 'unsafeRecvTyping') {
+                postToSafePorts(chat, {
+                    type: 'recvTyping',
+                    typing: data.typing
+                });
+
+            } else if (data.type === 'unsafeRecv') {
                 console.log('unsafeRecv to user', ownId, 'from', id, data);
                 chat.otr.receiveMsg(data.msg);
             }
@@ -394,7 +386,8 @@ var connectTab = function(user, ownId, id, tabId, safePort) {
             notTyping(chat);
 
         } else if (data.type === 'authenticate') {
-            authenticate(ownId, id, chat.otr.priv.fingerprint(), chat.status.fingerprint);
+//            if (chat.); // TODO check version
+            authenticate(ownId, id, chat.otr.priv.fingerprint(), chat.status.fingerprint, 'both');
         }
     });
 };
@@ -446,6 +439,11 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
     } else if (data.type === 'regenToken') {
         generate('genToken');
 
+    } else if (data.type === 'authFingerprint') {
+        // fingerprint auth request from options page
+        // (assume there's no actual chat online)
+        authenticate(data.ownId, data.id, data.ownFingerprint, data.fingerprint, 'fingerprint');
+
     } else if (data.type === 'initSafeChat') {
         // forward this back to the sender tab,
         // so that the safe chat iframe can pick it up
@@ -456,7 +454,6 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
 
 var authenticate = function(ownId, id, ownFingerprint, fingerprint, mode, question) {
     // mode = undefined/'both' | 'smp' | 'fingerprint'
-
     var w = 460, h = 500;
     chrome.windows.create({
         url: chrome.extension.getURL("authenticate.html"),
@@ -474,6 +471,7 @@ var authenticate = function(ownId, id, ownFingerprint, fingerprint, mode, questi
             function(tabs) {
                 chrome.tabs.sendMessage(tabs[0].id, {
                     type: 'initAuthenticate',
+
                     ownId: ownId,
                     id: id,
                     ownFingerprint: ownFingerprint,

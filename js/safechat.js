@@ -27,15 +27,15 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
     var id = data.id;
 
     var token = data.token;
-    if (token.substring(0, 5) !== "data:") token = "about:blank";
+    if (token.image.substring(0, 5) !== "data:") token.image = "about:blank";
     var profilePhoto = data.profilePhoto;
     if (profilePhoto.substring(0, 5) !== "data:") profilePhoto = "";
 
     $("<style>.token {" +
-      "    background-image: url(" + token + ");" +
+      "    background-image: url(" + token.image + ");" +
       "    background-size: contain;" +
       "    position: absolute;" +
-      "    opacity: 0.15;" +
+      "    opacity: 0.1;" +
       "    margin-left: -5px; margin-top: -3px;" +
       "}</style>")
         .appendTo("head");
@@ -56,7 +56,7 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
             $(".overlay").hide();
 
             $(".trust").css({
-                backgroundImage: 'url("' + token + '")',
+                backgroundImage: 'url("' + token.image + '")',
                 backgroundSize: "contain"
             }).hide();
 
@@ -65,7 +65,7 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
                 placement: 'auto',
                 title: function() {
                     return '<div class="tip-token" style="background-image: url(' +
-                        token + ')"></div>' + ({
+                        token.image + ')"></div>' + ({
                             new: "Identity new and unverified",
                             unseen: "Identity suddenly changed,<br>new identity not verified!",
                             seen: "Identity seen before,<br>but not verified yet",
@@ -107,7 +107,7 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
         return h + ":" + m + dd;
     };
 
-    var displayMsg = function(msg, own, encrypted, error) {
+    var displayMsg = function(msg, own, encrypted, typing, error) {
         var $row = $('<div class="row"></div>');
 
         if (!own) {
@@ -121,16 +121,16 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
                         .append("<br>")
                         .append(encrypted ?
                                 '<div class="tip-token" style="background-image: url(' +
-                                token + ')"></div>' :
+                                token.image + ')"></div>' :
                                 "")
                         .append(document.createTextNode(formatDate(new Date())))
                         .html()
                 }).appendTo($row);
         }
 
-        var $msg = $('<div class="message"></div>')
-                .text(msg);
+        var $msg = $('<div class="message"></div>').text(msg);
 
+        if (typing) $msg.addClass("typing");
         if (own) $msg.addClass("own");
         if (encrypted) $msg.addClass("encrypted");
         if (error) {
@@ -163,6 +163,38 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
     var port = chrome.runtime.connect({ name: "safePort-" + ownId + "-" + id });
 
     var $entry = $("#entry");
+    var updateEntryToken = (function() {
+        var canvas = $("#entry-token")[0];
+        var ctx = canvas.getContext("2d");
+        var size = canvas.width;
+
+        return function() {
+            if ($entry.val() !== "") {
+                // redraw entry token
+                // TODO feed color right to identicon
+                var hash = CryptoJS.SHA256($entry.val()).words[0];
+                new Identicon(canvas, hash, size);
+
+                var imageData = ctx.getImageData(0, 0, size, size);
+                for (var i = 0; i < imageData.data.length; i += 4) {
+                    if (imageData.data[i] === 255 &&
+                        imageData.data[i + 1] === 255 &&
+                        imageData.data[i + 2] === 255) continue;
+
+                    imageData.data[i] = token.color[0];
+                    imageData.data[i + 1] = token.color[1];
+                    imageData.data[i + 2] = token.color[2];
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                port.postMessage({ type: 'typing' });
+            } else {
+                ctx.clearRect(0, 0, size, size);
+                port.postMessage({ type: 'clear' });
+            }
+        };
+    })();
+
     $entry.keydown(function(e) {
         if (e.keyCode === 13 && !e.shiftKey) {
             var msg = $entry.val();
@@ -170,16 +202,21 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
             port.postMessage({ type: 'send',
                                msg: msg });
 
-            $entry.val("");
+            $entry.val("").trigger('input');
             return false;
+        }
+        updateEntryToken();
 
-        }
     }).keyup(function(e) {
-        if ($entry.val() !== "") {
-            port.postMessage({ type: 'typing' });
-        } else {
-            port.postMessage({ type: 'clear' });
-        }
+        updateEntryToken();
+
+    }).focusin(function(e) {
+        var bgColor = token.color.slice(0);
+        bgColor.pop();
+        $entry.css("background-color", "rgba(" + bgColor.join(",") + ",0.5)");
+
+    }).focusout(function(e) {
+        $entry.css("background-color", "");
     });
 
     port.onMessage.addListener(function(data) {
@@ -187,7 +224,12 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
         if (data.type === 'status') {
             handleStatus[data.status](data);
         } else if (data.type === 'error') {
-            displayMsg(data.msg, false, false, true);
+            displayMsg(data.msg, false, false, false, true);
+        } else if (data.type === 'recvTyping') {
+            $(".typing").closest(".row").remove();
+            if (data.typing) {
+                displayMsg("\u2022\u2022\u2022", false, false, true);
+            }
         } else if (data.type === 'recv') {
             displayMsg(data.msg, false, data.encrypted);
         } else if (data.type === 'recvOwn') {

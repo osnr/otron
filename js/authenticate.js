@@ -57,11 +57,16 @@ var restoreSelection = function(containerEl, savedSel) {
         $(document).ready(function() {
             console.log(data);
 
-            port = chrome.runtime.connect({ name: makeName(["authenticate", data.ownId, data.id, data.fingerprint]) });
+            port = chrome.runtime.connect({
+                name: makeName(["authenticate", data.ownId, data.id, data.fingerprint])
+            });
             port.onMessage.addListener(onMessage);
 
-            var nameKey = makeName(["name", ownId, id]);
-            chrome.storage.local.get(nameKey, function(items) {
+            var nameKey = makeName(["name", data.ownId, data.id]);
+            chrome.storage.local.get(["token", nameKey], function(items) {
+                if (!("token" in items)) return;
+                $("#page-token").attr("src", items["token"].image);
+
                 if (!(nameKey in items)) return;
                 var name = items[nameKey];
 
@@ -70,9 +75,12 @@ var restoreSelection = function(containerEl, savedSel) {
             });
 
             $(".screen").hide();
-            if (!data.mode || data.mode === 'both') {
-                $(".own-fingerprint").text(data.ownFingerprint.match(/(.{1,8})/g).join(' '));
+            if (data.mode === 'fingerprint' || data.mode === 'both') {
+                $(".own-fingerprint").text(
+                    data.ownFingerprint.match(/(.{1,8})/g).join(' '));
+            }
 
+            if (!data.mode || data.mode === 'both') {
                 $("#start-fingerprint").click(startFingerprintAuth);
                 $("#start-smp").click(startSmpAuth);
 
@@ -172,7 +180,7 @@ var restoreSelection = function(containerEl, savedSel) {
         $("#auth-smp").show();
 
         $("#submit-smp").click(function() {
-            // TODO sanitize prompt (better null than "")
+            // TODO clean prompt (better null than "")
             port.postMessage({
                 type: 'authSmp',
                 prompt: $("#prompt").val(),
