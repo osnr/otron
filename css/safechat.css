@@ -159,6 +159,25 @@ button:active {
 
     position: absolute;
     top: 8px;
+    left: 40px;
+
+    width: 0;
+    height: 0;
+
+    border-bottom: 5px solid transparent;  /* left arrow slant */
+    border-top: 5px solid transparent; /* right arrow slant */
+    border-right: 6px solid #f7f7f7; /* bottom, add background color here */
+    font-size: 0;
+    line-height: 0;
+
+    z-index: 10;
+}
+/* arrow which acts as a background shadow */
+.message:not(.own):not(.error):after {
+    content: '';
+
+    position: absolute;
+    top: 8px;
     left: 39px;
 
     width: 0;
@@ -166,15 +185,63 @@ button:active {
 
     border-bottom: 5px solid transparent;  /* left arrow slant */
     border-top: 5px solid transparent; /* right arrow slant */
-    border-right: 5px solid #f7f7f7; /* bottom, add background color here */
+    border-right: 6px solid rgba(0, 0, 0, .18); /* bottom, add background color here */
     font-size: 0;
     line-height: 0;
+
+    z-index: 9;
 }
 
 .message.own {
     /* background-color: #dbedfe; */
 
     float: right;
+    margin-right: 11px;
+}
+
+.message.own:before {
+    content: '';
+
+    position: absolute;
+    top: 8px;
+    right: 6px;
+
+    width: 0;
+    height: 0;
+
+    border-bottom: 5px solid transparent;  /* left arrow slant */
+    border-top: 5px solid transparent; /* right arrow slant */
+    border-left: 6px solid #f7f7f7; /* bottom, add background color here */
+    font-size: 0;
+    line-height: 0;
+
+    z-index: 10;
+}
+/* arrow which acts as a background shadow */
+.message.own:after {
+    content: '';
+
+    position: absolute;
+    top: 8px;
+    right: 5px;
+
+    width: 0;
+    height: 0;
+
+    border-bottom: 5px solid transparent;  /* left arrow slant */
+    border-top: 5px solid transparent; /* right arrow slant */
+    border-left: 6px solid rgba(0, 0, 0, .18); /* bottom, add background color here */
+    font-size: 0;
+    line-height: 0;
+
+    z-index: 9;
+}
+
+.message.single-line {
+    margin-top: 4px;
+}
+.message.single-line:before, .message.single-line:after {
+    top: 10px !important;
 }
 
 .message.typing {

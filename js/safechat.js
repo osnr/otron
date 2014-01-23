@@ -116,6 +116,7 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
                 .tooltip({
                     placement: 'bottom',
                     html: true,
+                    container: 'body',
                     title: $("<div></div>")
                         .append(document.createTextNode(name))
                         .append("<br>")
@@ -147,6 +148,10 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
             $msg.prepend($('<div class="token"></div>')
                          .height($msg.outerHeight() - 4)
                          .width($msg.outerWidth() - 2));
+        }
+
+        if ($msg.height() === 14) {
+            $msg.addClass("single-line");
         }
 
         return $msg;
