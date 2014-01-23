@@ -9,7 +9,6 @@ $(document).ready(function() {
 
     chrome.runtime.onMessage.addListener(function(data) {
         if (data.type !== 'doneGen') return;
-        console.log(data);
 
         $("#generating").hide();
         $("#done").show();

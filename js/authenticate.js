@@ -55,8 +55,6 @@ var restoreSelection = function(containerEl, savedSel) {
         fingerprint = data.fingerprint;
 
         $(document).ready(function() {
-            console.log(data);
-
             port = chrome.runtime.connect({
                 name: makeName(["authenticate", data.ownId, data.id, data.fingerprint])
             });
@@ -97,8 +95,6 @@ var restoreSelection = function(containerEl, savedSel) {
     chrome.runtime.onMessage.addListener(onInitAuthenticate);
 
     var onMessage = function(data) {
-        console.log("msg", data);
-
         $(".screen").hide();
         if (data.type === 'fingerprintTrust') {
             $("#trust-fingerprint").show();

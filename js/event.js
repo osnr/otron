@@ -1,6 +1,6 @@
 "use strict";
 
-var TIMEOUT = 10000;
+var TIMEOUT = 30000;
 
 var privKey;
 
@@ -46,7 +46,6 @@ var postToSafePorts = function(chat, data) {
 };
 
 var setStatus = function(chat, status) {
-    console.log("setStatus", chat, status);
     chat.status = status;
     postToSafePorts(chat, status);
 };
@@ -127,9 +126,7 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
             instance_tag: instanceTag,
             fragment_size: 9000, // arbitrarily chosen for now
             send_interval: 200,
-            priv: privKey,
-
-            debug: true
+            priv: privKey
         }),
 
         serverTypingState: false,
@@ -145,13 +142,10 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
                 });
 
             } else if (data.type === 'unsafeRecv') {
-                console.log('unsafeRecv to user', ownId, 'from', id, data);
                 chat.otr.receiveMsg(data.msg);
             }
         },
         unsafePortOnDisconnect: function() {
-            console.log("unsafe port disconnect", chat.unsafePortTabId);
-
             // see if we have any tabs still open
             // if so, we'll use the first one we find as data source
             for (var tid in chat.tabSafePorts) {
@@ -168,7 +162,6 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
 
             // OK, this chat is gone from the browser; time to wrap up
             // destroys keys too
-            console.log("destroying chat", ownId, id);
             delete user.chats[id];
 
             if (Object.keys(user.chats).length === 0) {
@@ -198,7 +191,6 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
 
     chat.otr.on('io', function (msg) {
         // send message over the wire
-        console.log('unsafeSend from', ownId, 'to', id, msg);
         chat.unsafePort.postMessage({
             type: 'unsafeSend',
             msg: msg
@@ -207,7 +199,6 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
 
     var timeout = null;
     chat.otr.on('status', function (state) {
-        console.log('status', ownId, id, state);
         switch (state) {
         case OTR.CONST.STATUS_SEND_QUERY:
             setStatus(chat, {
@@ -304,7 +295,6 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
     });
 
     chat.otr.on('smp', function(type, data, act) {
-        console.log("SMP", type, data, act);
         if (type === 'question') {
             authenticate(ownId, id, chat.otr.priv.fingerprint(), chat.status.fingerprint,
                          'smp', data);
@@ -323,7 +313,6 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
             type: 'error',
             msg: err
         });
-        console.log("error occurred: " + err);
     });
 
     chat.unsafePort.onDisconnect.addListener(chat.unsafePortOnDisconnect);
@@ -332,7 +321,6 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
 };
 
 var connectTab = function(user, ownId, id, tabId, safePort) {
-    console.log("connectTab", arguments);
     var chat;
     if (!(id in user.chats)) {
         initChat(user, ownId, id, tabId, false,
@@ -351,7 +339,6 @@ var connectTab = function(user, ownId, id, tabId, safePort) {
     chat.tabSafePorts[tabId] = safePort;
 
     safePort.onDisconnect.addListener(function() {
-        console.log("disconnect from safePort", tabId);
         delete chat.tabSafePorts[tabId];
 
         // we'll also want to destroy the unsafePort for this tab
@@ -424,7 +411,6 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
 
             if (otrQueue[ownId] && otrQueue[ownId][id]) {
                 otrQueue[ownId][id].forEach(function(d) {
-                    console.log(d);
                     chat.otr.receiveMsg(d.msg);
                 });
                 delete otrQueue[ownId][id];
@@ -449,7 +435,6 @@ chrome.runtime.onMessage.addListener(function(data, sender, sendResponse) {
         // so that the safe chat iframe can pick it up
         chrome.tabs.sendMessage(sender.tab.id, data);
     }
-    console.log(data);
 });
 
 var authenticate = function(ownId, id, ownFingerprint, fingerprint, mode, question) {
@@ -513,7 +498,6 @@ var onAuthConnect = function(ownId, id, fingerprint, authPort) {
     })();
 
     authPort.onMessage.addListener(function(data) {
-        console.log("authPort", data);
         if (data.type === 'authFingerprint') {
             // if we have an ongoing chat, we can update its status too
             setTrust(ownId, id, getChat(), fingerprint, 'trusted');

@@ -31,9 +31,7 @@ var sendTyping = (function() {
         };
 
         var req = $.param(data);
-        $.post("ajax/messaging/typ.php", req, function() {
-            console.log("typin success", arguments);
-        });
+        $.post("ajax/messaging/typ.php", req);
     };
 })();
 
@@ -87,9 +85,7 @@ var sendMessage = (function() {
         var req = $.param(data);
         req += "&phstamp=" + generatePhstamp(req, dtsg);
 
-        $.post("ajax/mercury/send_messages.php", req, function() {
-            console.log("success", arguments);
-        });
+        $.post("ajax/mercury/send_messages.php", req);
     };
 })();
 
@@ -181,7 +177,6 @@ var initChatInterception = function() {
         msd.trySend = function(uri, data) {
             if (uri === "/ajax/mercury/send_messages.php" &&
                 "message_batch" in data) {
-                console.log("tagging", data);
 
                 for (var i = 0; i < data.message_batch.length; i++) {
                     var message = data.message_batch[i];
@@ -240,8 +235,6 @@ var Chat = function(chat, ownId) {
     var dtsg = $('input[name="fb_dtsg"]').val();
 
     var isEncrypted = false;
-
-    console.log("coverin", chat, ownId, id);
 
     var token;
     chrome.storage.local.get(["token", chatIsEncryptKey(ownId, id)], function(items) {
@@ -363,7 +356,6 @@ var Chat = function(chat, ownId) {
                 });
 
                 enableEncryption();
-                console.log("OTR request", id);
             }
         });
 
@@ -481,7 +473,6 @@ var Chat = function(chat, ownId) {
     var runtimeOnConnect = function(port) {
         // fires when a channel is opened to this tab
 
-        console.log(id, "got new port", port);
         if (port.name !== unsafePortName(ownId, id)) return;
 
         setReceiveListener(id, function(data) {
@@ -521,7 +512,6 @@ var Chat = function(chat, ownId) {
     this.destroy = function() {
         // the chatbox has been closed, we assume all nodes are destroyed
         // (partial overlap with notEncrypted)
-        console.log("destroying");
         removeReceiveListener(id);
         chrome.storage.onChanged.removeListener(storageOnChanged);
         chrome.runtime.onConnect.removeListener(runtimeOnConnect);
@@ -553,7 +543,6 @@ function start(target, ownId) {
 
             for (i = 0; i < mutation.removedNodes.length; ++i) {
                 var removedNode = mutation.removedNodes[i];
-                console.log("removedNode", removedNode);
 
                 for (var j = 0; j < chats.length; ++j) {
                     var chat = chats[j];
@@ -590,8 +579,6 @@ $(document).ready(function() { // TODO do we need to wait till document.ready?
 
     var interval = 100;
     window.setTimeout(function init() {
-        console.log("checking");
-
         // FRAGILE select the chat tab bar
         var target = $("#ChatTabsPagelet > .fbNubGroup > .fbNubGroup")[0];
 

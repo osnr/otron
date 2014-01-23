@@ -20,8 +20,6 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
         data.uuid !== uuid) return;
     chrome.runtime.onMessage.removeListener(onInitSafeChat);
 
-    console.log(data);
-
     var name = data.name;
     var ownId = data.ownId;
     var id = data.id;
@@ -73,8 +71,6 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
                         })[this.parentElement.id];
                 }
             });
-
-            console.log("akeSuccess", data.fingerprint, data.trust, data.prevFingerprints);
         },
         timeout: function(data) {
             $(".overlay").hide();
@@ -157,8 +153,6 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
         return $msg;
     };
 
-    console.log("iframe online between", ownId, " and ", id);
-
     for (var i = 0; i < oldMessages.length; i++) {
         displayMsg(oldMessages[i].msg, oldMessages[i].own, false);
     }
@@ -225,7 +219,6 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
     });
 
     port.onMessage.addListener(function(data) {
-        console.log("iframe got", data);
         if (data.type === 'status') {
             handleStatus[data.status](data);
         } else if (data.type === 'error') {
