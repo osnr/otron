@@ -7,9 +7,13 @@ A simplified model of information flow in OTRon during an encrypted chat:
 ## User
 
 Let's assume the user has these objectives in their conversation.
+
 1. Minimal change to existing routine. That is, if they use Facebook chat, they should be able to keep using Facebook chat.
+
 2. Clearly delineated "encrypted" and "unencrypted" modes. The unencrypted mode should work even if their partner doesn't have OTR software.
+
 3. If encrypted mode is on, the content of messages should not be accessible by anyone besides the conversation participants. (We assume both participants want this property.)
+
 4. Earlier messages, especially messages in earlier conversations, should be unreadable. ("perfect forward secrecy")
    - Assumes that both participants do not keep logs of conversations
 
