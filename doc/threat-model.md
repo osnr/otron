@@ -1,3 +1,7 @@
+A simplified model of information flow in OTRon during an encrypted chat:
+
+<img alt="Diagram of messsage flow between FB server, client, and OTRon components" src="img/chat-model.png" width="840"></img>
+
 # Assumptions
 
 ## User
