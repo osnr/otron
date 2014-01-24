@@ -7,11 +7,7 @@
         <link rel="stylesheet" type="text/css" href="css/popup.css"></link>
         <style>
             #page-token {
-                position: fixed;
-                top: 1em;
-                right: 1em;
-                opacity: 0.5;
-                z-index: -1;
+                float: right;
             }
             .own-fingerprint-info {
                 background-color: rgba(0, 0, 128, 0.1);
@@ -36,6 +32,7 @@
     </head>
 
     <body>
+        <img id="page-token"></img>
         <div class="screen" id="start">
             <p>Encryption protects you against an attacker listening in on your messages, but it doesn't protect you against an attacker who impersonates the person you think you're talking to. You should <em>authenticate</em> your friend's identity, so you know they are who they say they are.</p>
             <p>How do you want your friend to vouch for their identity?</p>
@@ -112,6 +109,5 @@
             <h3>Secret phrase authentication</h3>
             <p>The secret phrase authentication was stopped prematurely!</p>
         </div>
-        <img id="page-token"></img>
     </body>
 </html>
