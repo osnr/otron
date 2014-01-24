@@ -1,14 +1,28 @@
-OTRon is a Chrome extension which allows you to encrypt chats on facebook.com with one click.
+OTRon is a Chrome extension for one-click, end-to-end Facebook Web chat encryption.
+
+Normally, Facebook employees and anyone who can somehow compromise Facebook (hostile governments, personal enemies..) can read everything you've ever discussed with anyone in Facebook chat.
+
+With OTRon, as long as your computers are secure, no one besides you and your friend should ever be able to read your conversation ("encryption").
+
+Your messages become unreadable after your chat is over ("perfect forward secrecy"), so even if your computer is compromised later, earlier chats should be safe. (If you need your messages saved, for now, you'll have to copy and paste them or take notes somewhere safe yourself.)
+
+With one click, you can go from unencrypted:
+
+<img alt="Unencrypted chat" src="img/03-unencrypted.png" width="272"></img>
+
+to encrypted:
+
+<img alt="Authenticated and encrypted chat" src="img/12-authed.png" width="278"></img>
 
 # Installation and generation
-When you install OTRon, it immediately generates three things: a *key pair*, a *security token*, and a *security color*.
+When you install OTRon, it immediately generates three pieces of information: a *key pair*, a *security token*, and a *security color*.
 
 <img alt="Key pair and token generation" src="img/01-gen.png" width="464"></img>
 
 ## Key pair
-The key pair (made up of a *public* and *private* key) is the most important item. It's what OTRon will use to encrypt your conversations. For now, you only need to know about one part of that key pair: your public key -- more specifically, the *fingerprint* of your public key.
+The key pair (made up of a *public* and *private* key) is the most important item. It's what OTRon will use to encrypt your conversations so that only you and your chat partner can read each other's messages. Everyone who uses OTR has their own key pair. For now, you only need to know about one part of that key pair: your public key -- more specifically, the *fingerprint* of your public key. You'll need to share it with your friends.
 
-Share that fingerprint as widely as possible! People can compare against it during encrypted chats to make sure they're talking to the real you. (We'll get to how *you* do that when talking to other people soon.)
+Share that fingerprint as widely as possible! People can compare against it during encrypted chats to make sure they're talking to the real you. (We'll get to how *you* can verify *someone else's* identity when talking to them soon.)
 
 <img alt="Public key fingerprint" src="img/02-fingerprint.png" width="332"></img>
 

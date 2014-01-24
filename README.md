@@ -5,6 +5,12 @@ OTRon
 
 OTRon is a Chrome extension for one-click, end-to-end Facebook Web chat encryption.
 
+Normally, Facebook employees and anyone who can somehow compromise Facebook (hostile governments, personal enemies..) can read everything you've ever discussed with anyone in Facebook chat.
+
+With OTRon, as long as your computers are secure, no one besides you and your friend should ever be able to read your conversation ("encryption").
+
+Your messages become unreadable after your chat is over ("perfect forward secrecy"), so even if your computer is compromised later, earlier chats should be safe.
+
 See the [Intro](doc/intro.md) page for more information on usage.
 
 See the [Threat Model](doc/threat-model.md) page for information about security.
