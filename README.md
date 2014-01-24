@@ -11,10 +11,15 @@ With OTRon, as long as your computers are secure, no one besides you and your fr
 
 Your messages become unreadable after your chat is over ("perfect forward secrecy"), so even if your computer is compromised later, earlier chats should be safe.
 
+## Installation
+It's not available on the Chrome Web Store yet. To install, clone this repository and [load the unpacked extension folder in Chrome](http://developer.chrome.com/extensions/getstarted.html#unpacked).
+
+## More information
 See the [Intro](doc/intro.md) page for more information on usage.
 
 See the [Threat Model](doc/threat-model.md) page for information about security.
 
+## Credits and license
 OTRon uses Arlo Breault's [JavaScript OTR library](https://github.com/arlolra/otr) and dependencies, [identicon.js](https://github.com/hgwr/identicon), Bootstrap tooltips, and jQuery.
 
 OTRon is licensed under the GNU GPL, version 3.
