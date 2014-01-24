@@ -11,6 +11,14 @@ With OTRon, as long as your computers are secure, no one besides you and your fr
 
 Your messages become unreadable after your chat is over ("perfect forward secrecy"), so even if your computer is compromised later, earlier chats should be safe.
 
+With one click, go from unencrypted chat:
+
+<img alt="Unencrypted chat" src="doc/img/03-unencrypted.png" width="272"></img>
+
+to encrypted chat:
+
+<img alt="Authenticated and encrypted chat" src="doc/img/12-authed.png" width="278"></img>
+
 ## Installation
 It's not available on the Chrome Web Store yet. To install, clone this repository and [load the unpacked extension folder in Chrome](http://developer.chrome.com/extensions/getstarted.html#unpacked).
 
