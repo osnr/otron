@@ -5,6 +5,8 @@ OTRon
 
 OTRon is a Chrome extension for one-click, end-to-end Facebook Web chat encryption.
 
+It's not available on the Chrome Web Store yet. To install, clone this repository and [load the unpacked extension folder in Chrome](http://developer.chrome.com/extensions/getstarted.html#unpacked).
+
 See the [Intro](doc/intro.md) page for more information on usage.
 
 See the [Threat Model](doc/threat-model.md) page for information about security.
