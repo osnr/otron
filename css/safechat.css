@@ -307,4 +307,5 @@ button:active {
     position: absolute;
     bottom: 2;
     right: 2;
+    pointer-events: none;
 }
