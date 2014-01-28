@@ -31,7 +31,7 @@ var sendTyping = (function() {
         };
 
         var req = $.param(data);
-        $.post("ajax/messaging/typ.php", req);
+        $.post("/ajax/messaging/typ.php", req);
     };
 })();
 
@@ -85,7 +85,7 @@ var sendMessage = (function() {
         var req = $.param(data);
         req += "&phstamp=" + generatePhstamp(req, dtsg);
 
-        $.post("ajax/mercury/send_messages.php", req);
+        $.post("/ajax/mercury/send_messages.php", req);
     };
 })();
 
