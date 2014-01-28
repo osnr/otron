@@ -1,6 +1,6 @@
 "use strict";
 
-var TIMEOUT = 30000;
+var TIMEOUT = 12000;
 
 var privKey;
 
@@ -26,7 +26,7 @@ var users = {};
 //             /targetFbid/: {
 //                 unsafePort: Port
 //                 unsafePortTabId: TabId
-//                 tabSafePorts: [TabId]
+//                 tabSafePorts: {TabId: Port}
 //                 otr: OTR
 //
 //                 status: StatusMessageData
@@ -48,6 +48,16 @@ var postToSafePorts = function(chat, data) {
 var setStatus = function(chat, status) {
     chat.status = status;
     postToSafePorts(chat, status);
+};
+
+var kill = function(chat) {
+    for (var tid in chat.tabSafePorts) {
+        chat.tabSafePorts[tid].disconnect();
+    }
+    chat.tabSafePorts = {};
+
+    chat.unsafePort.disconnect();
+    chat.unsafePortOnDisconnect();
 };
 
 var setTrust = function(ownId, id, chat, fingerprint, trust) {
@@ -213,6 +223,7 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
                     status: 'timeout',
                     prevStatus: 'sentQuery'
                 });
+                kill(chat);
             }, TIMEOUT);
             break;
 
@@ -229,6 +240,7 @@ var initChat = function(user, ownId, id, tabId, instanceTag, callback) {
                     status: 'timeout',
                     prevStatus: 'akeInit'
                 });
+                kill(chat);
             }, TIMEOUT);
             break;
 

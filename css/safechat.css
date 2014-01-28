@@ -18,6 +18,8 @@ body {
     opacity: 0.8;
 
     text-align: center;
+
+    z-index: 100;
 }
 .loading {
     background-image: url("../img/ajax-loader.gif");
@@ -294,6 +296,9 @@ button:active {
 }
 .message:not(.encrypted):not(.error):not(.typing):after {
     border-right-color: red;
+}
+.message.own:not(.encrypted):not(.typing):after {
+    border-left-color: red;
 }
 
 a {
