@@ -31,10 +31,6 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
 
     $("<style>.token {" +
       "    background-image: url(" + token.image + ");" +
-      "    background-size: contain;" +
-      "    position: absolute;" +
-      "    opacity: 0.1;" +
-      "    margin-left: -5px; margin-top: -3px;" +
       "}</style>")
         .appendTo("head");
 
@@ -125,8 +121,19 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
                 }).appendTo($row);
         }
 
-        var $msg = $('<div class="message"></div>').text(msg);
-
+        var $msg = $('<div class="message"></div>');
+        linkify(msg, { callback: function appendChunk(text, href) {
+            console.log('linkify chunk', text, href);
+            if (!href) {
+                $msg.append(document.createTextNode(text));
+            } else {
+                $("<a></a>")
+                    .text(text)
+                    .attr('href', href)
+                    .appendTo($msg);
+            }
+        }});
+        
         if (typing) $msg.addClass("typing");
         if (own) $msg.addClass("own");
         if (encrypted) $msg.addClass("encrypted");
@@ -197,6 +204,7 @@ chrome.runtime.onMessage.addListener(function onInitSafeChat(data) {
     $entry.keydown(function(e) {
         if (e.keyCode === 13 && !e.shiftKey) {
             var msg = $entry.val();
+            if (msg === "") return;
 
             port.postMessage({ type: 'send',
                                msg: msg });

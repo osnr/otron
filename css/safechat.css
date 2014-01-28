@@ -51,7 +51,7 @@ button:active {
     height: 28px;
     width: 100%;
 
-    border-bottom: 1px solid rgba(0, 0, 0, .15);
+    border-bottom: 1px solid rgba(0, 0, 0, 1);
 }
 .trust:before {
     content: '';
@@ -131,6 +131,15 @@ button:active {
     width: 32px;
     height: 32px;
     left: 4px;
+}
+
+.token {
+    background-size: contain;
+    position: absolute;
+    opacity: 0.1;
+    margin-left: -5px;
+    margin-top: -3px;
+    pointer-events: none;
 }
 
 .message {
@@ -281,7 +290,18 @@ button:active {
 .message:not(.encrypted):not(.error):not(.typing) {
     border: 1px solid red;
 }
+.message:not(.encrypted):not(.error):not(.typing):after {
+    border-right-color: red;
+}
 
+a {
+    color: #3b5998;
+    cursor: pointer;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
 
 #entry {
     position: absolute;

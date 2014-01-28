@@ -375,8 +375,10 @@ var Chat = function(chat, ownId) {
     var unencryptChat = function() {
         $(chat)
             .find(".safe-chat").remove().end()
-            .find(".addToThread").show().end()
-            .find(".titlebarButtonWrapper .uiSelector.inlineBlock").show().end()
+            .find(".titlebarButtonWrapper")
+                .find("a:not(.otr-icon-button):not(.close)").show().end()
+                .find(".uiSelector.inlineBlock").show().end() // settings gear
+                .end()
             .find(".fbNubFlyoutBody")
                 .show() // TODO fix scroll bug
                 .end()
@@ -409,8 +411,10 @@ var Chat = function(chat, ownId) {
                           '?' + uuid + '"></iframe>');
         $(chat)
             .closest(".fbNub").addClass("encryptedNub").end()
-            .find(".addToThread").hide().end()
-            .find(".titlebarButtonWrapper .uiSelector.inlineBlock").hide().end() // settings gear
+            .find(".titlebarButtonWrapper")
+                .find("a:not(.otr-icon-button):not(.close)").hide().end()
+                .find(".uiSelector.inlineBlock").hide().end() // settings gear
+                .end()
             .find(".fbNubFlyoutBody").hide().end()
             .find(".fbNubFlyoutFooter")
                 .hide()
